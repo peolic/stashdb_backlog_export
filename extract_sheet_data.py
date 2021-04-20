@@ -1,14 +1,19 @@
+#!/usr/bin/env python3.8
 # coding: utf-8
 import json
 import re
 from pathlib import Path
 from urllib.parse import urlparse, parse_qsl
-from typing import List, Set
+from typing import List, Optional, Set, Tuple, TypedDict
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
 import cssutils   # pip install cssutils
 import requests   # pip install requests
+
+
+# Determine performer appearance update entries from remove & append entries
+USE_UPDATES = False
 
 
 def main():
@@ -38,17 +43,18 @@ class _DataExtractor:
         self.data = []
 
     def get_done_classes(self) -> Set[str]:
-        style = self.soup.select_one('head > style').renderContents()
-        stylesheet = cssutils.parseString(style, validate=False)
+        style: Optional[bs4.Tag] = self.soup.select_one('head > style')
+        if style is None:
+            print('WARNING: Unable to determine partially completed entries')
+            return set()
+
+        stylesheet = cssutils.parseString(style.decode_contents(), validate=False)
 
         classes = set()
         for rule in stylesheet:
             if rule.type == rule.STYLE_RULE and rule.style.textDecoration == 'line-through':
-                classes.update([
-                    c.lstrip('.')
-                    for c in rule.selectorText.split(' ')
-                    if c.startswith('.s')
-                ])
+                selector: str = rule.selectorText
+                classes.update(c.lstrip('.') for c in selector.split(' ') if c.startswith('.s'))
 
         return classes
 
@@ -65,6 +71,22 @@ class _DataExtractor:
 
     def __str__(self):
         return '\n'.join(json.dumps(item) for item in self.data)
+
+
+class PerformerEntry(TypedDict):
+    id: Optional[str]
+    name: str
+    appearance: Optional[str]
+
+
+class _ScenePerformersItemOptional(TypedDict, total=False):
+    update: List[PerformerEntry]
+
+class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
+    scene_id: str
+    remove: List[PerformerEntry]
+    append: List[PerformerEntry]
+    # update: List[PerformerEntry]
 
 
 class ScenePerformers(_DataExtractor):
@@ -88,26 +110,28 @@ class ScenePerformers(_DataExtractor):
             if not item['scene_id']:
                 continue
             # no changes
-            if len(item['remove'] + item['append']) == 0:
+            if len(item['remove'] + item['append'] + item.get('update', [])) == 0:
                 continue
 
             self.data.append(item)
 
-    def _transform_row(self, row: bs4.Tag):
+    def _transform_row(self, row: bs4.Tag) -> Tuple[bool, ScenePerformersItem]:
         done = self._is_row_done(row)
 
         all_cells = row.select('td')
         remove_cells: List[bs4.Tag] = all_cells[self.column_first_info:][::2][:3]
         append_cells: List[bs4.Tag] = all_cells[self.column_first_info + 1:][::2][:3]
 
-        id_: str = all_cells[self.column_scene_id].text.strip()
+        scene_id: str = all_cells[self.column_scene_id].text.strip()
         remove = self._get_change_entries(remove_cells)
         append = self._get_change_entries(append_cells)
+        if USE_UPDATES and (update := self._extract_updates(remove, append)):
+            return done, { 'scene_id': scene_id, 'remove': remove, 'append': append, 'update': update }
 
-        return done, { 'scene_id': id_, 'remove': remove, 'append': append }
+        return done, { 'scene_id': scene_id, 'remove': remove, 'append': append }
 
     def _get_change_entries(self, cells: List[bs4.Tag]):
-        results = []
+        results: List[PerformerEntry] = []
 
         for cell in cells:
             name: str = cell.text.strip()
@@ -125,20 +149,23 @@ class ScenePerformers(_DataExtractor):
                 continue
                 print(f'skipped completed {name}')
 
-            results.append(
-                self._get_change_entry(name, cell)
-            )
+            entry = self._get_change_entry(name, cell)
+            if not entry:
+                continue
+                print(f'skipped invalid {name}')
+
+            results.append(entry)
 
         return results
 
-    def _get_change_entry(self, raw_name: str, cell: bs4.Tag):
+    def _get_change_entry(self, raw_name: str, cell: bs4.Tag) -> Optional[PerformerEntry]:
         match = re.search(r'(?:^\[new\]\s)?(.+?)(?: \(as (.+?)\))', raw_name)
         if match is None:
             name = raw_name
-            as_ = None
+            appearance = None
         else:
             name = match.group(1)
-            as_ = match.group(2)
+            appearance = match.group(2)
 
         try:
             url: str = cell.select_one('a').attrs['href']
@@ -148,15 +175,47 @@ class ScenePerformers(_DataExtractor):
                 url = dict(parse_qsl(url_p.query))['q']
                 url = urlparse(url)._replace(query=None, fragment=None).geturl()
         except (AttributeError, KeyError):
-            id_ = None
+            print(f'WARNING: {raw_name} is missing ID.')
+            p_id = None
         else:
             match = re.search(r'\/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
             if match is None:
-                id_ = None
+                print(f"WARNING: {raw_name}'s ID couldn't be determined.")
+                p_id = None
             else:
-                id_ = match.group(1)
+                p_id = match.group(1)
 
-        return { 'id': id_, 'name': name, 'as': as_ }
+        return { 'id': p_id, 'name': name, 'appearance': appearance }
+
+    def _extract_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry]) -> List[PerformerEntry]:
+        updates: List[PerformerEntry] = []
+
+        remove_ids = [i['id'] for i in remove]
+        append_ids = [i['id'] for i in append]
+        update_ids = set(remove_ids).intersection(append_ids)
+
+        for pid in update_ids:
+            if pid is None:
+                continue
+
+            r_item = remove[remove_ids.index(pid)]
+            a_item = append[append_ids.index(pid)]
+
+            # This is either not an update, or the one of IDs is incorrect
+            if r_item['name'] != a_item['name'] or r_item['appearance'] == a_item['appearance']:
+                print(f"WARNING: Unexpected name/ID for:"
+                      f"\n  {r_item['name']} // {a_item['name']}"
+                      f"\n  {r_item['appearance']} // {a_item['appearance']}"
+                      f"\n  {r_item['id']} // {a_item['id']}")
+                continue
+
+            updates.append(a_item)
+
+        for u_item in updates:
+            remove.remove(next(r for r in remove if r['id'] == u_item['id']))
+            append.remove(u_item)
+
+        return updates
 
 
 class DuplicateScenes(_DataExtractor):
