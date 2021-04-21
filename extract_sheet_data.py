@@ -7,7 +7,8 @@ from urllib.parse import urlparse, parse_qsl
 from typing import List, Optional, Set, Tuple, TypedDict
 
 # DEPENDENCIES
-import bs4        # pip install beautifulsoup4
+import bs4
+from bs4.element import ResultSet        # pip install beautifulsoup4
 import cssutils   # pip install cssutils
 import requests   # pip install requests
 
@@ -38,7 +39,12 @@ class _DataExtractor:
         # find the class names that are strike/line-through (partially completed entries)
         self.done_styles = self.get_done_classes()
 
-        self.sheet = self.soup.select_one(f'div[id="{gid}"]')
+        _sheet: Optional[bs4.Tag] = self.soup.select_one(f'div[id="{gid}"]')
+        if not _sheet:
+            print('ERROR: Sheet not found')
+            return
+
+        self.sheet = _sheet
 
         self.data = []
 
@@ -94,10 +100,16 @@ class ScenePerformers(_DataExtractor):
         super().__init__(gid='1397718590')
 
         all_rows = self.sheet.select('tbody > tr')
+        first_row: bs4.Tag = all_rows[0]
+
+        _scene_id_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Scene ID'))
+        _remove_columns: List[bs4.Tag] = first_row.find_all('td', text=re.compile(r'\(\d+\) Remove/Replace'))
+        _append_columns: List[bs4.Tag] = first_row.find_all('td', text=re.compile(r'\(\d+\) Add/With'))
 
         # indices start at 1, we need 0
-        self.column_scene_id   = -1 + all_rows[0].index(all_rows[0].find('td', text=re.compile('Scene ID')))
-        self.column_first_info = -1 + all_rows[0].index(all_rows[0].find('td', text=re.compile('Remove/Replace|Add/With')))
+        self.column_scene_id = -1 + first_row.index(_scene_id_column)
+        self.columns_remove  = [-1 + first_row.index(c) for c in _remove_columns]
+        self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
 
         self.data = []
         for row in all_rows[2:]:
@@ -119,8 +131,8 @@ class ScenePerformers(_DataExtractor):
         done = self._is_row_done(row)
 
         all_cells = row.select('td')
-        remove_cells: List[bs4.Tag] = all_cells[self.column_first_info:][::2][:3]
-        append_cells: List[bs4.Tag] = all_cells[self.column_first_info + 1:][::2][:3]
+        remove_cells: List[bs4.Tag] = [c for i, c in enumerate(all_cells) if i in self.columns_remove]
+        append_cells: List[bs4.Tag] = [c for i, c in enumerate(all_cells) if i in self.columns_append]
 
         scene_id: str = all_cells[self.column_scene_id].text.strip()
         remove = self._get_change_entries(remove_cells, scene_id)
