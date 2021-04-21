@@ -172,13 +172,21 @@ class ScenePerformers(_DataExtractor):
         return results
 
     def _get_change_entry(self, raw_name: str, cell: bs4.Tag, scene_id: str) -> Optional[PerformerEntry]:
-        match = re.search(r'(?:^\[[a-z]+\]\s)?(.+?)(?: \(as (.+?)\))', raw_name)
-        if match is None:
-            name = raw_name
+        def maybe_strip(s):
+            return s.strip() if isinstance(s, str) else s
+
+        match_with_as = re.search(r'(?:^\[[a-z]+\]\s)?(?P<name>.+?) \(as (?P<as>.+)\)', raw_name, re.I)
+        match_name = re.search(r'(?:^\[[a-z]+\]\s)?(?P<name>[a-z0-9 /.-]+\b)', raw_name, re.I)
+
+        if match_with_as:
+            name = maybe_strip(match_with_as.group('name'))
+            appearance = maybe_strip(match_with_as.group('as'))
+        elif match_name:
+            name = maybe_strip(match_name.group('name'))
             appearance = None
         else:
-            name = match.group(1)
-            appearance = match.group(2)
+            name = maybe_strip(raw_name)
+            appearance = None
 
         try:
             url: str = cell.select_one('a').attrs['href']
