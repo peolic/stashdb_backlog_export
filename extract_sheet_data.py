@@ -7,8 +7,7 @@ from urllib.parse import urlparse, parse_qsl
 from typing import List, Optional, Set, Tuple, TypedDict
 
 # DEPENDENCIES
-import bs4
-from bs4.element import ResultSet        # pip install beautifulsoup4
+import bs4        # pip install beautifulsoup4
 import cssutils   # pip install cssutils
 import requests   # pip install requests
 
