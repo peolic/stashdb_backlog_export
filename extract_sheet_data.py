@@ -123,14 +123,16 @@ class ScenePerformers(_DataExtractor):
         append_cells: List[bs4.Tag] = all_cells[self.column_first_info + 1:][::2][:3]
 
         scene_id: str = all_cells[self.column_scene_id].text.strip()
-        remove = self._get_change_entries(remove_cells)
-        append = self._get_change_entries(append_cells)
-        if USE_UPDATES and (update := self._extract_updates(remove, append)):
+        remove = self._get_change_entries(remove_cells, scene_id)
+        append = self._get_change_entries(append_cells, scene_id)
+        update = self._find_updates(remove, append, scene_id, extract=USE_UPDATES)
+
+        if USE_UPDATES:
             return done, { 'scene_id': scene_id, 'remove': remove, 'append': append, 'update': update }
 
         return done, { 'scene_id': scene_id, 'remove': remove, 'append': append }
 
-    def _get_change_entries(self, cells: List[bs4.Tag]):
+    def _get_change_entries(self, cells: List[bs4.Tag], scene_id: str):
         results: List[PerformerEntry] = []
 
         for cell in cells:
@@ -149,7 +151,7 @@ class ScenePerformers(_DataExtractor):
                 continue
                 print(f'skipped completed {name}')
 
-            entry = self._get_change_entry(name, cell)
+            entry = self._get_change_entry(name, cell, scene_id)
             if not entry:
                 continue
                 print(f'skipped invalid {name}')
@@ -158,8 +160,8 @@ class ScenePerformers(_DataExtractor):
 
         return results
 
-    def _get_change_entry(self, raw_name: str, cell: bs4.Tag) -> Optional[PerformerEntry]:
-        match = re.search(r'(?:^\[new\]\s)?(.+?)(?: \(as (.+?)\))', raw_name)
+    def _get_change_entry(self, raw_name: str, cell: bs4.Tag, scene_id: str) -> Optional[PerformerEntry]:
+        match = re.search(r'(?:^\[[a-z]+\]\s)?(.+?)(?: \(as (.+?)\))', raw_name)
         if match is None:
             name = raw_name
             appearance = None
@@ -175,19 +177,32 @@ class ScenePerformers(_DataExtractor):
                 url = dict(parse_qsl(url_p.query))['q']
                 url = urlparse(url)._replace(query=None, fragment=None).geturl()
         except (AttributeError, KeyError):
-            print(f'WARNING: {raw_name} is missing ID.')
+            print(f'WARNING: Missing performer ID: {raw_name} | Scene: {scene_id}')
             p_id = None
         else:
-            match = re.search(r'\/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
+            match = re.search(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
             if match is None:
-                print(f"WARNING: {raw_name}'s ID couldn't be determined.")
+                print(f"WARNING: Failed to extract performer ID for: {raw_name} | Scene: {scene_id}")
                 p_id = None
             else:
-                p_id = match.group(1)
+                obj = match.group(1)
+                p_id = match.group(2)
+                if obj != 'performers':
+                    p_id = None
+                    if obj == 'edits':
+                        print(f"WARNING: New performer? Edit ID found for: {raw_name} | Scene: {scene_id}")
+                    else:
+                        print(f"WARNING: Failed to extract performer ID for: {raw_name} | Scene: {scene_id}")
 
         return { 'id': p_id, 'name': name, 'appearance': appearance }
 
-    def _extract_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry]) -> List[PerformerEntry]:
+    def _find_updates(
+        self,
+        remove: List[PerformerEntry],
+        append: List[PerformerEntry],
+        scene_id: str,
+        extract: bool
+    ) -> List[PerformerEntry]:
         updates: List[PerformerEntry] = []
 
         remove_ids = [i['id'] for i in remove]
@@ -203,13 +218,15 @@ class ScenePerformers(_DataExtractor):
 
             # This is either not an update, or the one of IDs is incorrect
             if r_item['name'] != a_item['name'] or r_item['appearance'] == a_item['appearance']:
-                print(f"WARNING: Unexpected name/ID for:"
-                      f"\n  {r_item['name']} // {a_item['name']}"
-                      f"\n  {r_item['appearance']} // {a_item['appearance']}"
-                      f"\n  {r_item['id']} // {a_item['id']}")
+                print(f"WARNING: Unexpected name/ID for scene {scene_id} :"
+                      f"\n  {r_item['name']:<20} // {str(r_item['appearance']):<20} // {r_item['id']}"
+                      f"\n  {a_item['name']:<20} // {str(a_item['appearance']):<20} // {a_item['id']}")
                 continue
 
             updates.append(a_item)
+
+        if not extract:
+            return updates
 
         for u_item in updates:
             remove.remove(next(r for r in remove if r['id'] == u_item['id']))
