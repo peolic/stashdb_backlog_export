@@ -13,7 +13,9 @@ import requests   # pip install requests
 
 
 # Determine performer appearance update entries from remove & append entries
-USE_UPDATES = False
+USE_UPDATES = True
+# Skip items completely if at least one if the performers' IDs could not be extracted
+SKIP_NO_ID = True
 
 
 def main():
@@ -97,6 +99,30 @@ class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
     # update: List[PerformerEntry]
 
 
+def format_performer(action: str, p: PerformerEntry, with_id: bool = True) -> str:
+    p_id = p['id']
+    p_name = p['name']
+    p_dsmbg = p.get('disambiguation')
+    p_as = p['appearance']
+
+    parts = []
+
+    if with_id:
+        parts.append(f'[{p_id}]')
+
+    if action:
+        parts.append(action)
+
+    if p_as:
+        parts.extend((p_as, f'({p_name})'))
+    elif p_dsmbg:
+        parts.extend((p_name, f'[{p_dsmbg}]'))
+    else:
+        parts.append(p_name)
+
+    return ' '.join(parts)
+
+
 class ScenePerformers(_DataExtractor):
     def __init__(self):
         super().__init__(gid='1397718590')
@@ -115,38 +141,51 @@ class ScenePerformers(_DataExtractor):
 
         self.data = []
         for row in all_rows[2:]:
-            done, item = self._transform_row(row)
+            row_num, done, item = self._transform_row(row)
+
+            scene_id = item['scene_id']
+            remove, append, update = item['remove'], item['append'], item.get('update', [])
 
             # already processed
             if done:
                 continue
             # empty row
-            if not item['scene_id']:
+            if not scene_id:
                 continue
             # no changes
-            if len(item['remove'] + item['append'] + item.get('update', [])) == 0:
+            if len(remove) + len(append) + len(update) == 0:
+                continue
+            # If this item has any performers that do not have a StashDB ID,
+            #   skip the whole item for now, to avoid unwanted deletions.
+            if SKIP_NO_ID and (no_id := [i for i in (remove + append + update) if not i['id']]):
+                formatted_no_id = [format_performer('', i, False) for i in no_id]
+                print(
+                    f'Row {row_num:<3} | Skipped due to missing performer IDs: '
+                    + ' , '.join(formatted_no_id)
+                )
                 continue
 
             self.data.append(item)
 
-    def _transform_row(self, row: bs4.Tag) -> Tuple[bool, ScenePerformersItem]:
+    def _transform_row(self, row: bs4.Tag) -> Tuple[int, bool, ScenePerformersItem]:
         done = self._is_row_done(row)
+        row_num = int(row.select_one('th').text)
 
         all_cells = row.select('td')
         remove_cells: List[bs4.Tag] = [c for i, c in enumerate(all_cells) if i in self.columns_remove]
         append_cells: List[bs4.Tag] = [c for i, c in enumerate(all_cells) if i in self.columns_append]
 
         scene_id: str = all_cells[self.column_scene_id].text.strip()
-        remove = self._get_change_entries(remove_cells, scene_id)
-        append = self._get_change_entries(append_cells, scene_id)
-        update = self._find_updates(remove, append, scene_id, extract=USE_UPDATES)
+        remove = self._get_change_entries(remove_cells, row_num)
+        append = self._get_change_entries(append_cells, row_num)
+        update = self._find_updates(remove, append, row_num, extract=USE_UPDATES)
 
         if USE_UPDATES and update:
-            return done, { 'scene_id': scene_id, 'remove': remove, 'append': append, 'update': update }
+            return row_num, done, { 'scene_id': scene_id, 'remove': remove, 'append': append, 'update': update }
 
-        return done, { 'scene_id': scene_id, 'remove': remove, 'append': append }
+        return row_num, done, { 'scene_id': scene_id, 'remove': remove, 'append': append }
 
-    def _get_change_entries(self, cells: List[bs4.Tag], scene_id: str):
+    def _get_change_entries(self, cells: List[bs4.Tag], row_num: int):
         results: List[PerformerEntry] = []
 
         for cell in cells:
@@ -165,20 +204,20 @@ class ScenePerformers(_DataExtractor):
                 continue
                 print(f'skipped completed {name}')
 
-            entry = self._get_change_entry(name, cell, scene_id)
+            entry = self._get_change_entry(name, cell, row_num)
             if not entry:
                 continue
                 print(f'skipped invalid {name}')
 
             if entry in results:
-                print(f'WARNING: Skipping duplicate performer: {name} | Scene: {scene_id}')
+                print(f'Row {row_num:<3} | WARNING: Skipping duplicate performer: {name}')
                 continue
 
             results.append(entry)
 
         return results
 
-    def _get_change_entry(self, raw_name: str, cell: bs4.Tag, scene_id: str) -> Optional[PerformerEntry]:
+    def _get_change_entry(self, raw_name: str, cell: bs4.Tag, row_num: int) -> Optional[PerformerEntry]:
         def maybe_strip(s):
             return s.strip() if isinstance(s, str) else s
 
@@ -202,12 +241,13 @@ class ScenePerformers(_DataExtractor):
                 url = dict(parse_qsl(url_p.query))['q']
                 url = urlparse(url)._replace(query=None, fragment=None).geturl()
         except (AttributeError, KeyError):
-            print(f'WARNING: Missing performer ID: {raw_name} | Scene: {scene_id}')
+            print(f'Row {row_num:<3} | WARNING: Missing performer ID: {raw_name}')
             p_id = None
         else:
             match = re.search(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
             if match is None:
-                print(f"WARNING: Failed to extract performer ID for: {raw_name} | Scene: {scene_id}")
+                if not SKIP_NO_ID:
+                    print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
                 p_id = None
             else:
                 obj = match.group(1)
@@ -215,9 +255,10 @@ class ScenePerformers(_DataExtractor):
                 if obj != 'performers':
                     p_id = None
                     if obj == 'edits':
-                        print(f"WARNING: Edit ID found for: {raw_name} | Scene: {scene_id}")
+                        if not SKIP_NO_ID:
+                            print(f"Row {row_num:<3} | WARNING: Edit ID found for: {raw_name}")
                     else:
-                        print(f"WARNING: Failed to extract performer ID for: {raw_name} | Scene: {scene_id}")
+                        print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
 
         entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance }
         if dsmbg:
@@ -228,7 +269,7 @@ class ScenePerformers(_DataExtractor):
         self,
         remove: List[PerformerEntry],
         append: List[PerformerEntry],
-        scene_id: str,
+        row_num: int,
         extract: bool
     ) -> List[PerformerEntry]:
         updates: List[PerformerEntry] = []
@@ -246,9 +287,9 @@ class ScenePerformers(_DataExtractor):
 
             # This is either not an update, or the one of IDs is incorrect
             if r_item['name'] != a_item['name'] or r_item['appearance'] == a_item['appearance']:
-                print(f"WARNING: Unexpected name/ID for scene {scene_id} :"
-                      f"\n  {r_item['name']:<20} // {str(r_item['appearance']):<20} // {r_item['id']}"
-                      f"\n  {a_item['name']:<20} // {str(a_item['appearance']):<20} // {a_item['id']}")
+                print(f"Row {row_num:<3} | WARNING: Unexpected name/ID:"
+                      f"\n  {format_performer('-', r_item)}"
+                      f"\n  {format_performer('-', a_item)}")
                 continue
 
             updates.append(a_item)
