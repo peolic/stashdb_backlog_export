@@ -78,7 +78,10 @@ class _DataExtractor:
         return '\n'.join(json.dumps(item) for item in self.data)
 
 
-class PerformerEntry(TypedDict):
+class _PerformerEntryOptional(TypedDict, total=False):
+    disambiguation: str
+
+class PerformerEntry(_PerformerEntryOptional, TypedDict):
     id: Optional[str]
     name: str
     appearance: Optional[str]
@@ -138,7 +141,7 @@ class ScenePerformers(_DataExtractor):
         append = self._get_change_entries(append_cells, scene_id)
         update = self._find_updates(remove, append, scene_id, extract=USE_UPDATES)
 
-        if USE_UPDATES:
+        if USE_UPDATES and update:
             return done, { 'scene_id': scene_id, 'remove': remove, 'append': append, 'update': update }
 
         return done, { 'scene_id': scene_id, 'remove': remove, 'append': append }
@@ -167,6 +170,10 @@ class ScenePerformers(_DataExtractor):
                 continue
                 print(f'skipped invalid {name}')
 
+            if entry in results:
+                print(f'WARNING: Skipping duplicate performer: {name} | Scene: {scene_id}')
+                continue
+
             results.append(entry)
 
         return results
@@ -175,18 +182,17 @@ class ScenePerformers(_DataExtractor):
         def maybe_strip(s):
             return s.strip() if isinstance(s, str) else s
 
-        match_with_as = re.search(r'(?:^\[[a-z]+\]\s)?(?P<name>.+?) \(as (?P<as>.+)\)', raw_name, re.I)
-        match_name = re.search(r'(?:^\[[a-z]+\]\s)?(?P<name>[a-z0-9 /.-]+\b)', raw_name, re.I)
+        match = re.fullmatch(r'(?:\[[a-z]+?\] )?(?P<name>.+?)(?: \[(?P<dsmbg>.+?)\])?(?: \(as (?P<as>.+)\))?', raw_name, re.I)
 
-        if match_with_as:
-            name = maybe_strip(match_with_as.group('name'))
-            appearance = maybe_strip(match_with_as.group('as'))
-        elif match_name:
-            name = maybe_strip(match_name.group('name'))
-            appearance = None
+        if match:
+            name = maybe_strip(match.group('name'))
+            appearance = maybe_strip(match.group('as'))
+            dsmbg = maybe_strip(match.group('dsmbg'))
         else:
+            print(f'WARNING: Failed to parse name {raw_name}')
             name = maybe_strip(raw_name)
             appearance = None
+            dsmbg = None
 
         try:
             url: str = cell.select_one('a').attrs['href']
@@ -209,11 +215,14 @@ class ScenePerformers(_DataExtractor):
                 if obj != 'performers':
                     p_id = None
                     if obj == 'edits':
-                        print(f"WARNING: New performer? Edit ID found for: {raw_name} | Scene: {scene_id}")
+                        print(f"WARNING: Edit ID found for: {raw_name} | Scene: {scene_id}")
                     else:
                         print(f"WARNING: Failed to extract performer ID for: {raw_name} | Scene: {scene_id}")
 
-        return { 'id': p_id, 'name': name, 'appearance': appearance }
+        entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance }
+        if dsmbg:
+            entry['disambiguation'] = dsmbg
+        return entry
 
     def _find_updates(
         self,
