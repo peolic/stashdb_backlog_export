@@ -11,7 +11,8 @@ import bs4        # pip install beautifulsoup4
 import cssutils   # pip install cssutils
 import requests   # pip install requests
 
-
+# Scene-Performers configuration
+# ==============================
 # Determine performer appearance update entries from remove & append entries
 USE_UPDATES = True
 # Skip items completely if at least one if the performers' IDs could not be extracted
@@ -124,7 +125,15 @@ def format_performer(action: str, p: PerformerEntry, with_id: bool = True) -> st
 
 
 class ScenePerformers(_DataExtractor):
-    def __init__(self):
+    def __init__(self, use_updates: bool = USE_UPDATES, skip_no_id: bool = SKIP_NO_ID):
+        """
+        Args:
+            use_updates - Determine performer appearance update entries from remove & append entries
+            skip_no_id - Skip items completely if at least one if the performers' IDs could not be extracted
+        """
+        self.use_updates = use_updates
+        self.skip_no_id = skip_no_id
+
         super().__init__(gid='1397718590')
 
         all_rows = self.sheet.select('tbody > tr')
@@ -157,7 +166,7 @@ class ScenePerformers(_DataExtractor):
                 continue
             # If this item has any performers that do not have a StashDB ID,
             #   skip the whole item for now, to avoid unwanted deletions.
-            if SKIP_NO_ID and (no_id := [i for i in (remove + append + update) if not i['id']]):
+            if self.skip_no_id and (no_id := [i for i in (remove + append + update) if not i['id']]):
                 formatted_no_id = [format_performer('', i, False) for i in no_id]
                 print(
                     f'Row {row_num:<3} | Skipped due to missing performer IDs: '
@@ -178,9 +187,9 @@ class ScenePerformers(_DataExtractor):
         scene_id: str = all_cells[self.column_scene_id].text.strip()
         remove = self._get_change_entries(remove_cells, row_num)
         append = self._get_change_entries(append_cells, row_num)
-        update = self._find_updates(remove, append, row_num, extract=USE_UPDATES)
+        update = self._find_updates(remove, append, row_num)
 
-        if USE_UPDATES and update:
+        if self.use_updates and update:
             return row_num, done, { 'scene_id': scene_id, 'remove': remove, 'append': append, 'update': update }
 
         return row_num, done, { 'scene_id': scene_id, 'remove': remove, 'append': append }
@@ -246,7 +255,7 @@ class ScenePerformers(_DataExtractor):
         else:
             match = re.search(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
             if match is None:
-                if not SKIP_NO_ID:
+                if not self.skip_no_id:
                     print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
                 p_id = None
             else:
@@ -255,7 +264,7 @@ class ScenePerformers(_DataExtractor):
                 if obj != 'performers':
                     p_id = None
                     if obj == 'edits':
-                        if not SKIP_NO_ID:
+                        if not self.skip_no_id:
                             print(f"Row {row_num:<3} | WARNING: Edit ID found for: {raw_name}")
                     else:
                         print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
@@ -269,8 +278,7 @@ class ScenePerformers(_DataExtractor):
         self,
         remove: List[PerformerEntry],
         append: List[PerformerEntry],
-        row_num: int,
-        extract: bool
+        row_num: int
     ) -> List[PerformerEntry]:
         updates: List[PerformerEntry] = []
 
@@ -294,7 +302,8 @@ class ScenePerformers(_DataExtractor):
 
             updates.append(a_item)
 
-        if not extract:
+        # Do not remove from remove/append if not using updates
+        if not self.use_updates:
             return updates
 
         for u_item in updates:
