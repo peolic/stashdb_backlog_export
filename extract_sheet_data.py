@@ -55,6 +55,8 @@ class _DataExtractor:
 
         self.sheet = _sheet
 
+        self.all_rows: bs4.ResultSet = self.sheet.select('tbody > tr')
+
         self.data = []
 
     def get_done_classes(self) -> Set[str]:
@@ -133,19 +135,20 @@ def format_performer(action: str, p: PerformerEntry, with_id: bool = True) -> st
 
 
 class ScenePerformers(_DataExtractor):
-    def __init__(self, use_updates: bool = USE_UPDATES, skip_no_id: bool = SKIP_NO_ID):
+    def __init__(self, skip_done: bool = True, use_updates: bool = USE_UPDATES, skip_no_id: bool = SKIP_NO_ID):
         """
         Args:
+            skip_done   - Skip rows and/or cells that are marked as done.
             use_updates - Determine performer appearance update entries from remove & append entries
-            skip_no_id - Skip items completely if at least one if the performers' IDs could not be extracted
+            skip_no_id  - Skip items completely if at least one if the performers' IDs could not be extracted
         """
+        self.skip_done = skip_done
         self.use_updates = use_updates
         self.skip_no_id = skip_no_id
 
         super().__init__(gid='1397718590')
 
-        all_rows = self.sheet.select('tbody > tr')
-        first_row: bs4.Tag = all_rows[0]
+        first_row: bs4.Tag = self.all_rows[0]
 
         _studio_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Studio'))
         _scene_id_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Scene ID'))
@@ -159,14 +162,14 @@ class ScenePerformers(_DataExtractor):
         self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
 
         self.data: List[ScenePerformersItem] = []
-        for row in all_rows[2:]:
+        for row in self.all_rows[2:]:
             row_num, done, item = self._transform_row(row)
 
             scene_id = item['scene_id']
             remove, append, update = item['remove'], item['append'], item.get('update', [])
 
             # already processed
-            if done:
+            if self.skip_done and done:
                 continue
             # empty row
             if not scene_id:
@@ -227,7 +230,7 @@ class ScenePerformers(_DataExtractor):
                 continue
 
             # skip completed
-            if any(c in self.done_styles for c in cell.attrs.get('class', [])):
+            if self.skip_done and any(c in self.done_styles for c in cell.attrs.get('class', [])):
                 continue
                 print(f'skipped completed {name}')
 
@@ -348,14 +351,12 @@ class DuplicateScenes(_DataExtractor):
     def __init__(self):
         super().__init__(gid='1879471751')
 
-        all_rows: bs4.ResultSet = self.sheet.select('tbody > tr')
-
         # indices start at 1, we need 0
-        self.column_studio: int  = -1 + all_rows[0].index(all_rows[0].find('td', text=re.compile('Studio')))
-        self.column_main_id: int = -1 + all_rows[0].index(all_rows[0].find('td', text=re.compile('Main ID')))
+        self.column_studio: int  = -1 + self.all_rows[0].index(self.all_rows[0].find('td', text=re.compile('Studio')))
+        self.column_main_id: int = -1 + self.all_rows[0].index(self.all_rows[0].find('td', text=re.compile('Main ID')))
 
         self.data: List[DuplicateScenesItem] = []
-        for row in all_rows[2:]:
+        for row in self.all_rows[2:]:
             done, item = self._transform_row(row)
 
             # already processed
