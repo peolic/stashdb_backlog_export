@@ -22,6 +22,7 @@ SKIP_NO_ID = True
 def main():
     main_scene_performers()
     # main_duplicate_scenes()
+    # main_duplicate_performers()
 
 def main_scene_performers():
     data = ScenePerformers()
@@ -32,6 +33,11 @@ def main_duplicate_scenes():
     data = DuplicateScenes()
     data.write(Path('duplicate_scenes.json'))
     print(f'Success: {len(data)} scene entries')
+
+def main_duplicate_performers():
+    data = DuplicatePerformers()
+    data.write(Path('duplicate_performers.json'))
+    print(f'Success: {len(data)} performer entries')
 
 
 class _DataExtractor:
@@ -402,6 +408,95 @@ class DuplicateScenes(_DataExtractor):
                 print(f'skipped completed {name}')
 
             results.append(scene_id)
+
+        return results
+
+    def __iter__(self):
+        for item in self.data:
+            yield item
+
+    def __len__(self):
+        return len(self.data)
+
+
+class DuplicatePerformersItem(TypedDict):
+    name: str
+    main_id: str
+    duplicates: List[str]
+
+
+class DuplicatePerformers(_DataExtractor):
+    def __init__(self, skip_done: bool = True, **kw):
+        """
+        Args:
+            skip_done - Skip rows and/or cells that are marked as done.
+        """
+        self.skip_done = skip_done
+
+        super().__init__(gid='0', **kw)
+
+        first_row: bs4.Tag = self.all_rows[1]
+
+        _name_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Performer'))
+        _main_id_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Main ID'))
+
+        # indices start at 1, we need 0
+        self.column_name = -1 + first_row.index(_name_column)
+        self.column_main_id = -1 + first_row.index(_main_id_column)
+
+        self.data: List[DuplicatePerformersItem] = []
+        for row in self.all_rows[3:]:
+            row_num, done, item = self._transform_row(row)
+
+            # already processed
+            if self.skip_done and done:
+                continue
+            # empty row
+            if not item['main_id']:
+                continue
+            # no duplicates listed
+            if not item['duplicates']:
+                continue
+
+            self.data.append(item)
+
+    def _transform_row(self, row: bs4.Tag) -> Tuple[int, bool, DuplicatePerformersItem]:
+        done = self._is_row_done(row)
+        row_num = int(row.select_one('th').text)
+
+        all_cells = row.select('td')
+
+        name: str = all_cells[self.column_name].text.strip()
+        main_id: str = all_cells[self.column_main_id].text.strip()
+        duplicate_ids: List[str] = self._get_duplicate_performer_ids(all_cells[self.column_main_id:], row_num)
+
+        return row_num, done, { 'name': name, 'main_id': main_id, 'duplicates': duplicate_ids }
+
+    def _get_duplicate_performer_ids(self, cells: List[bs4.Tag], row_num: int):
+        results: List[str] = []
+
+        for cell in cells:
+            p_id: str = cell.text.strip()
+
+            # skip empty
+            if not p_id:
+                continue
+
+            # skip anything else
+            match = re.fullmatch(r'[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}', p_id)
+            if match is None:
+                continue
+
+            # skip completed
+            if any(c in self.done_styles for c in cell.attrs.get('class', [])):
+                continue
+                print(f'skipped completed {p_id}')
+
+            if p_id in results:
+                print(f'Row {row_num:<3} | WARNING: Skipping duplicate performer ID: {p_id}')
+                continue
+
+            results.append(p_id)
 
         return results
 
