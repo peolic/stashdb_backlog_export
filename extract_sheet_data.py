@@ -36,14 +36,17 @@ def main_duplicate_scenes():
 
 class _DataExtractor:
 
-    def __init__(self, gid: str):
-        resp = requests.get(
-            url='https://docs.google.com/spreadsheets/d/1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ/htmlview',
-            params={'gid': gid},
-        )
-        resp.raise_for_status()
+    def __init__(self, gid: str, reuse_soup: Optional[bs4.BeautifulSoup] = None):
+        if reuse_soup is not None:
+            self.soup = reuse_soup
+        else:
+            resp = requests.get(
+                url='https://docs.google.com/spreadsheets/d/1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ/htmlview',
+                params={'gid': gid},
+            )
+            resp.raise_for_status()
 
-        self.soup = bs4.BeautifulSoup(resp.text, 'html.parser')
+            self.soup = bs4.BeautifulSoup(resp.text, 'html.parser')
 
         # find the class names that are strike/line-through (partially completed entries)
         self.done_styles = self.get_done_classes()
@@ -135,7 +138,7 @@ def format_performer(action: str, p: PerformerEntry, with_id: bool = True) -> st
 
 
 class ScenePerformers(_DataExtractor):
-    def __init__(self, skip_done: bool = True, use_updates: bool = USE_UPDATES, skip_no_id: bool = SKIP_NO_ID):
+    def __init__(self, skip_done: bool = True, use_updates: bool = USE_UPDATES, skip_no_id: bool = SKIP_NO_ID, **kw):
         """
         Args:
             skip_done   - Skip rows and/or cells that are marked as done.
@@ -146,7 +149,7 @@ class ScenePerformers(_DataExtractor):
         self.use_updates = use_updates
         self.skip_no_id = skip_no_id
 
-        super().__init__(gid='1397718590')
+        super().__init__(gid='1397718590', **kw)
 
         first_row: bs4.Tag = self.all_rows[0]
 
@@ -348,8 +351,8 @@ class DuplicateScenesItem(TypedDict):
 
 
 class DuplicateScenes(_DataExtractor):
-    def __init__(self):
-        super().__init__(gid='1879471751')
+    def __init__(self, **kw):
+        super().__init__(gid='1879471751', **kw)
 
         # indices start at 1, we need 0
         self.column_studio: int  = -1 + self.all_rows[0].index(self.all_rows[0].find('td', text=re.compile('Studio')))
