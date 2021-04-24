@@ -20,11 +20,18 @@ SKIP_NO_ID = True
 
 
 def main():
+    main_scene_performers()
+    # main_duplicate_scenes()
+
+def main_scene_performers():
     data = ScenePerformers()
     data.write(Path('scene_performers.json'))
-    # data = DuplicateScenes()
-    # data.write(Path('duplicate_scenes.json'))
-    print('Success')
+    print(f'Success: {len(data)} scene entries')
+
+def main_duplicate_scenes():
+    data = DuplicateScenes()
+    data.write(Path('duplicate_scenes.json'))
+    print(f'Success: {len(data)} scene entries')
 
 
 class _DataExtractor:
@@ -151,7 +158,7 @@ class ScenePerformers(_DataExtractor):
         self.columns_remove  = [-1 + first_row.index(c) for c in _remove_columns]
         self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
 
-        self.data = []
+        self.data: List[ScenePerformersItem] = []
         for row in all_rows[2:]:
             row_num, done, item = self._transform_row(row)
 
@@ -323,6 +330,19 @@ class ScenePerformers(_DataExtractor):
 
         return updates
 
+    def __iter__(self):
+        for item in self.data:
+            yield item
+
+    def __len__(self):
+        return len(self.data)
+
+
+class DuplicateScenesItem(TypedDict):
+    studio: str
+    main_id: str
+    duplicates: List[str]
+
 
 class DuplicateScenes(_DataExtractor):
     def __init__(self):
@@ -334,7 +354,7 @@ class DuplicateScenes(_DataExtractor):
         self.column_studio: int  = -1 + all_rows[0].index(all_rows[0].find('td', text=re.compile('Studio')))
         self.column_main_id: int = -1 + all_rows[0].index(all_rows[0].find('td', text=re.compile('Main ID')))
 
-        self.data = []
+        self.data: List[DuplicateScenesItem] = []
         for row in all_rows[2:]:
             done, item = self._transform_row(row)
 
@@ -347,7 +367,7 @@ class DuplicateScenes(_DataExtractor):
 
             self.data.append(item)
 
-    def _transform_row(self, row: bs4.Tag):
+    def _transform_row(self, row: bs4.Tag) -> Tuple[bool, DuplicateScenesItem]:
         done = self._is_row_done(row)
 
         all_cells = row.select('td')
@@ -380,6 +400,13 @@ class DuplicateScenes(_DataExtractor):
             results.append(scene_id)
 
         return results
+
+    def __iter__(self):
+        for item in self.data:
+            yield item
+
+    def __len__(self):
+        return len(self.data)
 
 
 if __name__ == '__main__':
