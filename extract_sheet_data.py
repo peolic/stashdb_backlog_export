@@ -94,6 +94,7 @@ class _ScenePerformersItemOptional(TypedDict, total=False):
     update: List[PerformerEntry]
 
 class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
+    studio: Optional[str]
     scene_id: str
     remove: List[PerformerEntry]
     append: List[PerformerEntry]
@@ -139,11 +140,13 @@ class ScenePerformers(_DataExtractor):
         all_rows = self.sheet.select('tbody > tr')
         first_row: bs4.Tag = all_rows[0]
 
+        _studio_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Studio'))
         _scene_id_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Scene ID'))
         _remove_columns: List[bs4.Tag] = first_row.find_all('td', text=re.compile(r'\(\d+\) Remove/Replace'))
         _append_columns: List[bs4.Tag] = first_row.find_all('td', text=re.compile(r'\(\d+\) Add/With'))
 
         # indices start at 1, we need 0
+        self.column_studio  = -1 + first_row.index(_studio_column)
         self.column_scene_id = -1 + first_row.index(_scene_id_column)
         self.columns_remove  = [-1 + first_row.index(c) for c in _remove_columns]
         self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
@@ -184,15 +187,23 @@ class ScenePerformers(_DataExtractor):
         remove_cells: List[bs4.Tag] = [c for i, c in enumerate(all_cells) if i in self.columns_remove]
         append_cells: List[bs4.Tag] = [c for i, c in enumerate(all_cells) if i in self.columns_append]
 
+        studio: str = all_cells[self.column_studio].text.strip()
         scene_id: str = all_cells[self.column_scene_id].text.strip()
         remove = self._get_change_entries(remove_cells, row_num)
         append = self._get_change_entries(append_cells, row_num)
         update = self._find_updates(remove, append, row_num)
 
-        if self.use_updates and update:
-            return row_num, done, { 'scene_id': scene_id, 'remove': remove, 'append': append, 'update': update }
+        item: ScenePerformersItem = {
+            'studio': studio,
+            'scene_id': scene_id,
+            'remove': remove,
+            'append': append,
+        }
 
-        return row_num, done, { 'scene_id': scene_id, 'remove': remove, 'append': append }
+        if self.use_updates and update:
+            item['update'] = update
+
+        return row_num, done, item
 
     def _get_change_entries(self, cells: List[bs4.Tag], row_num: int):
         results: List[PerformerEntry] = []
