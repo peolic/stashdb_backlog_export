@@ -315,9 +315,11 @@ class ScenePerformers(_DataExtractor):
                     else:
                         print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
 
-        entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance, 'status': status }
+        entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance }
         if dsmbg:
             entry['disambiguation'] = dsmbg
+        if status:
+            entry['status'] = status
         return entry
 
     def _find_updates(
