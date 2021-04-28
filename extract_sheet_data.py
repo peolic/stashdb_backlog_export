@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 from urllib.parse import urlparse, parse_qsl
-from typing import List, Optional, Set, Tuple, TypedDict
+from typing import Dict, List, Optional, Set, Tuple, TypedDict
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
@@ -187,10 +187,25 @@ class ScenePerformers(_DataExtractor):
             # no changes
             if len(remove) + len(append) + len(update) == 0:
                 continue
+
+            by_status: Dict[str, List[PerformerEntry]] = {}
+            for entry in (remove + append + update):
+                status: Optional[str] = entry.get('status')
+                target = by_status.setdefault(status, [])  # type: ignore
+                target.append(entry)
+
+            # skip entries tagged with [new] as they are marked to be created
+            if by_status.get('new'):
+                formatted_new_tagged = [format_performer('', i, False) for i in by_status['new']]
+                print(
+                    f'Row {row_num:<3} | Skipped due to [new]-tagged performers: '
+                    + ' , '.join(formatted_new_tagged)
+                )
+                continue
             # skip entries tagged with [edit] as they are marked to be edited
             #   and given the information of one of the to-append performers
-            if (edit_tagged := [i for i in remove if i.get('status') == 'edit']):
-                formatted_edit_tagged = [format_performer('', i, False) for i in edit_tagged]
+            if by_status.get('edit'):
+                formatted_edit_tagged = [format_performer('', i, False) for i in by_status['edit']]
                 print(
                     f'Row {row_num:<3} | Skipped due to [edit]-tagged performers: '
                     + ' , '.join(formatted_edit_tagged)
@@ -201,7 +216,7 @@ class ScenePerformers(_DataExtractor):
             if self.skip_no_id and (no_id := [i for i in (remove + append + update) if not i['id']]):
                 formatted_no_id = [format_performer('', i, False) for i in no_id]
                 print(
-                    f'Row {row_num:<3} | Skipped due to missing performer IDs: '
+                    f'Row {row_num:<3} | WARNING: Skipped due to missing performer IDs: '
                     + ' , '.join(formatted_no_id)
                 )
                 continue
@@ -296,7 +311,8 @@ class ScenePerformers(_DataExtractor):
                 url = dict(parse_qsl(url_p.query))['q']
                 url = urlparse(url)._replace(query=None, fragment=None).geturl()
         except (AttributeError, KeyError):
-            print(f'Row {row_num:<3} | WARNING: Missing performer ID: {raw_name}')
+            if status != 'new':
+                print(f'Row {row_num:<3} | WARNING: Missing performer ID: {raw_name}')
             p_id = None
         else:
             match = re.search(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
