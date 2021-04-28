@@ -100,6 +100,7 @@ class _DataExtractor:
 
 
 class _PerformerEntryOptional(TypedDict, total=False):
+    status: Optional[str]
     disambiguation: str
 
 class PerformerEntry(_PerformerEntryOptional, TypedDict):
@@ -186,6 +187,15 @@ class ScenePerformers(_DataExtractor):
             # no changes
             if len(remove) + len(append) + len(update) == 0:
                 continue
+            # skip entries tagged with [edit] as they are marked to be edited
+            #   and given the information of one of the to-append performers
+            if (edit_tagged := [i for i in remove if i.get('status') == 'edit']):
+                formatted_edit_tagged = [format_performer('', i, False) for i in edit_tagged]
+                print(
+                    f'Row {row_num:<3} | Skipped due to [edit]-tagged performers: '
+                    + ' , '.join(formatted_edit_tagged)
+                )
+                continue
             # If this item has any performers that do not have a StashDB ID,
             #   skip the whole item for now, to avoid unwanted deletions.
             if self.skip_no_id and (no_id := [i for i in (remove + append + update) if not i['id']]):
@@ -260,14 +270,20 @@ class ScenePerformers(_DataExtractor):
         def maybe_strip(s):
             return s.strip() if isinstance(s, str) else s
 
-        match = re.fullmatch(r'(?:\[[a-z]+?\] )?(?P<name>.+?)(?: \[(?P<dsmbg>.+?)\])?(?: \(as (?P<as>.+)\))?', raw_name, re.I)
+        match = re.fullmatch(
+            r'(?:\[(?P<status>[a-z]+?)\] )?(?P<name>.+?)(?: \[(?P<dsmbg>.+?)\])?(?: \(as (?P<as>.+)\))?',
+            raw_name,
+            re.I
+        )
 
         if match:
+            status = match.group('status')
             name = maybe_strip(match.group('name'))
             appearance = maybe_strip(match.group('as'))
             dsmbg = maybe_strip(match.group('dsmbg'))
         else:
             print(f'WARNING: Failed to parse name {raw_name}')
+            status = None
             name = maybe_strip(raw_name)
             appearance = None
             dsmbg = None
@@ -299,7 +315,7 @@ class ScenePerformers(_DataExtractor):
                     else:
                         print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
 
-        entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance }
+        entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance, 'status': status }
         if dsmbg:
             entry['disambiguation'] = dsmbg
         return entry
