@@ -135,6 +135,7 @@ class PerformerEntry(_PerformerEntryOptional, TypedDict):
 
 class _ScenePerformersItemOptional(TypedDict, total=False):
     update: List[PerformerEntry]
+    parent_studio: str
 
 class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
     studio: Optional[str]
@@ -194,6 +195,8 @@ class ScenePerformers(_DataExtractor):
         self.column_scene_id = -1 + first_row.index(_scene_id_column)
         self.columns_remove  = [-1 + first_row.index(c) for c in _remove_columns]
         self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
+
+        self._parent_studio_pattern = re.compile(r'^(?P<studio>.+?) \[(?:of )?(?P<parent_studio>.+)\]$')
 
         self.data: List[ScenePerformersItem] = []
         for row in self.all_rows[2:]:
@@ -261,8 +264,12 @@ class ScenePerformers(_DataExtractor):
         append = self._get_change_entries(append_cells, row_num)
         update = self._find_updates(remove, append, row_num)
 
+        studio_info = {'studio': studio}
+        if studio and (parent_studio_match := self._parent_studio_pattern.fullmatch(studio)):
+            studio_info.update(parent_studio_match.groupdict())
+
         item: ScenePerformersItem = {
-            'studio': studio,
+            **studio_info,  # type: ignore
             'scene_id': scene_id,
             'remove': remove,
             'append': append,
