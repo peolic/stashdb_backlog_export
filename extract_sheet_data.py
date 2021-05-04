@@ -19,24 +19,48 @@ USE_UPDATES = True
 SKIP_NO_ID = True
 
 
+script_dir = Path(__file__).parent
+
+
 def main():
-    main_scene_performers()
-    # main_duplicate_scenes()
-    # main_duplicate_performers()
+    import argparse
+
+    class Arguments(argparse.Namespace):
+        what: Optional[str]
+
+    parser = argparse.ArgumentParser('Extract Sheet Data')
+    subparsers = parser.add_subparsers(help='What')
+    parser.set_defaults(what='sp')
+
+    sp_parser = subparsers.add_parser(name='sp', help="Scene-Performers (Default)")
+    sp_parser.set_defaults(what='sp')
+    ds_parser = subparsers.add_parser(name='ds', help="Duplicate Scenes")
+    ds_parser.set_defaults(what='ds')
+    dp_parser = subparsers.add_parser(name='dp', help="Duplicate Performers")
+    dp_parser.set_defaults(what='dp')
+
+    args = parser.parse_args(namespace=Arguments())
+
+    if args.what == 'sp':
+        main_scene_performers()
+    elif args.what == 'ds':
+        main_duplicate_scenes()
+    elif args.what == 'dp':
+        main_duplicate_performers()
 
 def main_scene_performers():
     data = ScenePerformers()
-    data.write(Path('scene_performers.json'))
+    data.write(script_dir / 'scene_performers.json')
     print(f'Success: {len(data)} scene entries')
 
 def main_duplicate_scenes():
     data = DuplicateScenes()
-    data.write(Path('duplicate_scenes.json'))
+    data.write(script_dir / 'duplicate_scenes.json')
     print(f'Success: {len(data)} scene entries')
 
 def main_duplicate_performers():
     data = DuplicatePerformers()
-    data.write(Path('duplicate_performers.json'))
+    data.write(script_dir / 'duplicate_performers.json')
     print(f'Success: {len(data)} performer entries')
 
 
