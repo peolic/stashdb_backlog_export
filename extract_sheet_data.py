@@ -317,18 +317,19 @@ class ScenePerformers(_DataExtractor):
         else:
             match = re.search(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
             if match is None:
-                if not self.skip_no_id:
-                    print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
+                # if not self.skip_no_id:
+                #     print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
                 p_id = None
             else:
                 obj = match.group(1)
                 p_id = match.group(2)
                 if obj != 'performers':
                     p_id = None
-                    if obj == 'edits':
-                        if not self.skip_no_id:
-                            print(f"Row {row_num:<3} | WARNING: Edit ID found for: {raw_name}")
-                    else:
+                    # if obj == 'edits':
+                    #     if not self.skip_no_id:
+                    #         print(f"Row {row_num:<3} | WARNING: Edit ID found for: {raw_name}")
+                    # else:
+                    if obj != 'edits':
                         print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
 
         entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance }
