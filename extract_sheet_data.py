@@ -215,10 +215,10 @@ class ScenePerformers(_DataExtractor):
             if len(remove) + len(append) + len(update) == 0:
                 continue
 
-            by_status: Dict[str, List[PerformerEntry]] = {}
+            by_status: Dict[Optional[str], List[PerformerEntry]] = {}
             for entry in (remove + append + update):
-                status: Optional[str] = entry.get('status')
-                target = by_status.setdefault(status, [])  # type: ignore
+                status = entry.get('status')
+                target = by_status.setdefault(status, [])
                 target.append(entry)
 
             # skip entries tagged with [new] as they are marked to be created
