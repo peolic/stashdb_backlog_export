@@ -284,35 +284,36 @@ class ScenePerformers(_DataExtractor):
         results: List[PerformerEntry] = []
 
         for cell in cells:
-            name: str = cell.text.strip()
+            entry, raw_name = self._get_change_entry(cell, row_num)
 
-            # skip empty
-            if not name or name.startswith('>>>>>'):
-                continue
-
-            # skip comments
-            if name.startswith('#'):
-                continue
-
-            # skip completed
-            if self.skip_done and any(c in self.done_styles for c in cell.attrs.get('class', [])):
-                continue
-                print(f'skipped completed {name}')
-
-            entry = self._get_change_entry(name, cell, row_num)
             if not entry:
                 continue
-                print(f'skipped invalid {name}')
+                print(f'skipped empty/comment/completed/invalid {raw_name}')
 
             if entry in results:
-                print(f'Row {row_num:<3} | WARNING: Skipping duplicate performer: {name}')
+                print(f'Row {row_num:<3} | WARNING: Skipping duplicate performer: {raw_name}')
                 continue
 
             results.append(entry)
 
         return results
 
-    def _get_change_entry(self, raw_name: str, cell: bs4.Tag, row_num: int) -> Optional[PerformerEntry]:
+    def _get_change_entry(self, cell: bs4.Tag, row_num: int) -> Tuple[Optional[PerformerEntry], str]:
+        raw_name: str = cell.text.strip()
+
+        # skip empty
+        if not raw_name or raw_name.startswith('>>>>>'):
+            return None, raw_name
+
+        # skip comments
+        if raw_name.startswith('#'):
+            return None, raw_name
+
+        # skip completed
+        if self.skip_done and any(c in self.done_styles for c in cell.attrs.get('class', [])):
+            return None, raw_name
+            print(f'skipped completed {raw_name}')
+
         def maybe_strip(s):
             return s.strip() if isinstance(s, str) else s
 
@@ -368,7 +369,7 @@ class ScenePerformers(_DataExtractor):
             entry['disambiguation'] = dsmbg
         if status:
             entry['status'] = status
-        return entry
+        return entry, raw_name
 
     def _find_updates(
         self,
