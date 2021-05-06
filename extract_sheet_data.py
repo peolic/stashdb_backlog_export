@@ -132,6 +132,8 @@ class PerformerEntry(_PerformerEntryOptional, TypedDict):
     name: str
     appearance: Optional[str]
 
+class PerformerUpdateEntry(PerformerEntry, TypedDict):
+    old_appearance: Optional[str]
 
 class _ScenePerformersItemOptional(TypedDict, total=False):
     update: List[PerformerEntry]
@@ -368,13 +370,8 @@ class ScenePerformers(_DataExtractor):
             entry['status'] = status
         return entry, raw_name
 
-    def _find_updates(
-        self,
-        remove: List[PerformerEntry],
-        append: List[PerformerEntry],
-        row_num: int
-    ) -> List[PerformerEntry]:
-        updates: List[PerformerEntry] = []
+    def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int):
+        updates: List[PerformerUpdateEntry] = []
 
         remove_ids = [i['id'] for i in remove]
         append_ids = [i['id'] for i in append]
@@ -398,7 +395,8 @@ class ScenePerformers(_DataExtractor):
                       f"\n  {format_performer('-', a_item)}")
                 continue
 
-            updates.append(a_item)
+            u_item = PerformerUpdateEntry(**a_item, old_appearance=r_item['appearance'])
+            updates.append(u_item)
 
         # Do not remove from remove/append if not using updates
         if not self.use_updates:
@@ -406,7 +404,7 @@ class ScenePerformers(_DataExtractor):
 
         for u_item in updates:
             remove.remove(next(r for r in remove if r['id'] == u_item['id']))
-            append.remove(u_item)
+            append.remove(next(a for a in append if a['id'] == u_item['id']))
 
         return updates
 
