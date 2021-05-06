@@ -314,9 +314,6 @@ class ScenePerformers(_DataExtractor):
             return None, raw_name
             print(f'skipped completed {raw_name}')
 
-        def maybe_strip(s):
-            return s.strip() if isinstance(s, str) else s
-
         match = re.fullmatch(
             r'(?:\[(?P<status>[a-z]+?)\] )?(?P<name>.+?)(?: \[(?P<dsmbg>.+?)\])?(?: \(as (?P<as>.+)\))?',
             raw_name,
@@ -325,13 +322,13 @@ class ScenePerformers(_DataExtractor):
 
         if match:
             status = match.group('status')
-            name = maybe_strip(match.group('name'))
-            appearance = maybe_strip(match.group('as'))
-            dsmbg = maybe_strip(match.group('dsmbg'))
+            name = match.group('name')
+            appearance = match.group('as')
+            dsmbg = match.group('dsmbg')
         else:
             print(f'WARNING: Failed to parse name {raw_name}')
             status = None
-            name = maybe_strip(raw_name)
+            name = raw_name.strip()
             appearance = None
             dsmbg = None
 
