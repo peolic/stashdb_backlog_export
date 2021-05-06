@@ -387,8 +387,12 @@ class ScenePerformers(_DataExtractor):
             r_item = remove[remove_ids.index(pid)]
             a_item = append[append_ids.index(pid)]
 
-            # This is either not an update, or the one of IDs is incorrect
+            # This is either not an update, or the one of IDs is incorrect,
+            #   unless this is the aftermath of an edited performer.
             if r_item['name'] != a_item['name'] or r_item['appearance'] == a_item['appearance']:
+                if r_item.get('status') == 'edit':
+                    continue
+
                 print(f"Row {row_num:<4} | WARNING: Unexpected name/ID:"
                       f"\n  {format_performer('-', r_item)}"
                       f"\n  {format_performer('-', a_item)}")
