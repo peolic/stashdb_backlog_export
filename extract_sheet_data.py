@@ -225,7 +225,7 @@ class ScenePerformers(_DataExtractor):
             if by_status.get('new'):
                 formatted_new_tagged = [format_performer('', i, False) for i in by_status['new']]
                 print(
-                    f'Row {row_num:<3} | Skipped due to [new]-tagged performers: '
+                    f'Row {row_num:<4} | Skipped due to [new]-tagged performers: '
                     + ' , '.join(formatted_new_tagged)
                 )
                 continue
@@ -234,7 +234,7 @@ class ScenePerformers(_DataExtractor):
             if by_status.get('edit'):
                 formatted_edit_tagged = [format_performer('', i, False) for i in by_status['edit']]
                 print(
-                    f'Row {row_num:<3} | Skipped due to [edit]-tagged performers: '
+                    f'Row {row_num:<4} | Skipped due to [edit]-tagged performers: '
                     + ' , '.join(formatted_edit_tagged)
                 )
                 continue
@@ -243,7 +243,7 @@ class ScenePerformers(_DataExtractor):
             if self.skip_no_id and (no_id := [i for i in (remove + append + update) if not i['id']]):
                 formatted_no_id = [format_performer('', i, False) for i in no_id]
                 print(
-                    f'Row {row_num:<3} | WARNING: Skipped due to missing performer IDs: '
+                    f'Row {row_num:<4} | WARNING: Skipped due to missing performer IDs: '
                     + ' , '.join(formatted_no_id)
                 )
                 continue
@@ -291,7 +291,7 @@ class ScenePerformers(_DataExtractor):
                 print(f'skipped empty/comment/completed/invalid {raw_name}')
 
             if entry in results:
-                print(f'Row {row_num:<3} | WARNING: Skipping duplicate performer: {raw_name}')
+                print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer: {raw_name}')
                 continue
 
             results.append(entry)
@@ -344,13 +344,13 @@ class ScenePerformers(_DataExtractor):
                 url = urlparse(url)._replace(query=None, fragment=None).geturl()
         except (AttributeError, KeyError):
             if status != 'new':
-                print(f'Row {row_num:<3} | WARNING: Missing performer ID: {raw_name}')
+                print(f'Row {row_num:<4} | WARNING: Missing performer ID: {raw_name}')
             p_id = None
         else:
             match = re.search(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
             if match is None:
                 # if not self.skip_no_id:
-                #     print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
+                #     print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
                 p_id = None
             else:
                 obj = match.group(1)
@@ -359,10 +359,10 @@ class ScenePerformers(_DataExtractor):
                     p_id = None
                     # if obj == 'edits':
                     #     if not self.skip_no_id:
-                    #         print(f"Row {row_num:<3} | WARNING: Edit ID found for: {raw_name}")
+                    #         print(f"Row {row_num:<4} | WARNING: Edit ID found for: {raw_name}")
                     # else:
                     if obj != 'edits':
-                        print(f"Row {row_num:<3} | WARNING: Failed to extract performer ID for: {raw_name}")
+                        print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
 
         entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance }
         if dsmbg:
@@ -392,7 +392,7 @@ class ScenePerformers(_DataExtractor):
 
             # This is either not an update, or the one of IDs is incorrect
             if r_item['name'] != a_item['name'] or r_item['appearance'] == a_item['appearance']:
-                print(f"Row {row_num:<3} | WARNING: Unexpected name/ID:"
+                print(f"Row {row_num:<4} | WARNING: Unexpected name/ID:"
                       f"\n  {format_performer('-', r_item)}"
                       f"\n  {format_performer('-', a_item)}")
                 continue
@@ -560,7 +560,7 @@ class DuplicatePerformers(_DataExtractor):
                 print(f'skipped completed {p_id}')
 
             if p_id in results:
-                print(f'Row {row_num:<3} | WARNING: Skipping duplicate performer ID: {p_id}')
+                print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer ID: {p_id}')
                 continue
 
             results.append(p_id)
