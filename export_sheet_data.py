@@ -252,6 +252,14 @@ class ScenePerformers(_DataExtractor):
 
             self.data.append(item)
 
+    def _is_row_done(self, row: bs4.Tag) -> bool:
+        """Override base class method because of first column being used for 'submitted' status."""
+        cells = row.select('td use')
+        if not cells:
+            return False
+        v_cell = cells[0] if len(cells) == 1 else cells[1]
+        return v_cell.attrs['xlink:href'] == '#checkedCheckboxId'
+
     def _transform_row(self, row: bs4.Tag) -> Tuple[int, bool, ScenePerformersItem]:
         done = self._is_row_done(row)
         row_num = int(row.select_one('th').text)
