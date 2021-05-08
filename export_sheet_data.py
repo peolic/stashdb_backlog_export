@@ -198,7 +198,7 @@ class ScenePerformers(_DataExtractor):
         self.columns_remove  = [-1 + first_row.index(c) for c in _remove_columns]
         self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
 
-        self._parent_studio_pattern = re.compile(r'^(?P<studio>.+?) \[(?:of )?(?P<parent_studio>.+)\]$')
+        self._parent_studio_pattern = re.compile(r'^(?P<studio>.+?) \[(?P<parent_studio>.+)\]$')
 
         self.data: List[ScenePerformersItem] = []
         for row in self.all_rows[2:]:
