@@ -13,6 +13,7 @@ import requests   # pip install requests
 
 # Scene-Performers configuration
 # ==============================
+WRITE_TO_PARENT_FOLDER = True
 # Determine performer appearance update entries from remove & append entries
 USE_UPDATES = True
 # Skip items completely if at least one if the performers' IDs could not be extracted
@@ -41,26 +42,28 @@ def main():
 
     args = parser.parse_args(namespace=Arguments())
 
+    target = script_dir.parent if WRITE_TO_PARENT_FOLDER else script_dir
+
     if args.what == 'sp':
-        main_scene_performers()
+        main_scene_performers(target)
     elif args.what == 'ds':
-        main_duplicate_scenes()
+        main_duplicate_scenes(target)
     elif args.what == 'dp':
-        main_duplicate_performers()
+        main_duplicate_performers(target)
 
-def main_scene_performers():
+def main_scene_performers(target: Path):
     data = ScenePerformers()
-    data.write(script_dir / 'scene_performers.json')
+    data.write(target / 'scene_performers.json')
     print(f'Success: {len(data)} scene entries')
 
-def main_duplicate_scenes():
+def main_duplicate_scenes(target: Path):
     data = DuplicateScenes()
-    data.write(script_dir / 'duplicate_scenes.json')
+    data.write(target / 'duplicate_scenes.json')
     print(f'Success: {len(data)} scene entries')
 
-def main_duplicate_performers():
+def main_duplicate_performers(target: Path):
     data = DuplicatePerformers()
-    data.write(script_dir / 'duplicate_performers.json')
+    data.write(target / 'duplicate_performers.json')
     print(f'Success: {len(data)} performer entries')
 
 
