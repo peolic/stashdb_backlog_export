@@ -318,11 +318,11 @@ class ScenePerformers(_DataExtractor):
         if not raw_name or raw_name.startswith('>>>>>'):
             return None, raw_name
 
-        # skip comments
-        if raw_name.startswith('#'):
+        # skip comments/completed
+        if raw_name.startswith(('#', '[v]')):
             return None, raw_name
 
-        # skip completed
+        # skip completed (legacy)
         if self.skip_done and any(c in self.done_styles for c in cell.attrs.get('class', [])):
             return None, raw_name
             print(f'skipped completed {raw_name}')
