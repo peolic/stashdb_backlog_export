@@ -188,7 +188,7 @@ class ScenePerformers(_DataExtractor):
             row_num, done, item = self._transform_row(row)
 
             scene_id = item['scene_id']
-            remove, append, update = item['remove'], item['append'], item['update']
+            remove, append, update = item['remove'], item['append'], item.get('update', [])
 
             # already processed
             if self.skip_done and done:
@@ -261,13 +261,15 @@ class ScenePerformers(_DataExtractor):
         if studio and (parent_studio_match := self._parent_studio_pattern.fullmatch(studio)):
             studio_info.update(parent_studio_match.groupdict())
 
-        item: ScenePerformersItem = {
-            **studio_info,  # type: ignore
-            'scene_id': scene_id,
-            'remove': remove,
-            'append': append,
-            'update': update,
-        }
+        item = ScenePerformersItem(
+            **studio_info,
+            scene_id=scene_id,
+            remove=remove,
+            append=append,
+        )
+
+        if update:
+            item['update'] = update
 
         return row_num, done, item
 

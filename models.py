@@ -15,13 +15,13 @@ class PerformerUpdateEntry(PerformerEntry, TypedDict):
 
 class _ScenePerformersItemOptional(TypedDict, total=False):
     parent_studio: str
+    update: List[PerformerUpdateEntry]
 
 class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
     studio: Optional[str]
     scene_id: str
     remove: List[PerformerEntry]
     append: List[PerformerEntry]
-    update: List[PerformerUpdateEntry]
 
 
 class DuplicateScenesItem(TypedDict):
