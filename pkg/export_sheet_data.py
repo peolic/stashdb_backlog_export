@@ -24,32 +24,6 @@ from .models import (
 SKIP_NO_ID = True
 
 
-def main():
-    import argparse
-
-    class Arguments(argparse.Namespace):
-        what: Optional[str]
-
-    parser = argparse.ArgumentParser('Extract Sheet Data')
-    subparsers = parser.add_subparsers(help='What')
-    parser.set_defaults(what='sp')
-
-    sp_parser = subparsers.add_parser(name='sp', help="Scene-Performers (Default)")
-    sp_parser.set_defaults(what='sp')
-    ds_parser = subparsers.add_parser(name='ds', help="Duplicate Scenes")
-    ds_parser.set_defaults(what='ds')
-    dp_parser = subparsers.add_parser(name='dp', help="Duplicate Performers")
-    dp_parser.set_defaults(what='dp')
-
-    args = parser.parse_args(namespace=Arguments())
-
-    if args.what == 'sp':
-        main_scene_performers()
-    elif args.what == 'ds':
-        main_duplicate_scenes()
-    elif args.what == 'dp':
-        main_duplicate_performers()
-
 def main_scene_performers():
     from .paths import path_scene_performers
     data = ScenePerformers()
@@ -549,7 +523,3 @@ class DuplicatePerformers(_DataExtractor):
 
     def __len__(self):
         return len(self.data)
-
-
-if __name__ == '__main__':
-    main()
