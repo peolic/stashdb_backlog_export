@@ -1,4 +1,3 @@
-#!/usr/bin/env python3.8
 # coding: utf-8
 import json
 import re
@@ -21,12 +20,8 @@ from .models import (
 
 # Scene-Performers configuration
 # ==============================
-WRITE_TO_PARENT_FOLDER = True
 # Skip items completely if at least one if the performers' IDs could not be extracted
 SKIP_NO_ID = True
-
-
-script_dir = Path(__file__).parent
 
 
 def main():
@@ -48,28 +43,29 @@ def main():
 
     args = parser.parse_args(namespace=Arguments())
 
-    target = script_dir.parent if WRITE_TO_PARENT_FOLDER else script_dir
-
     if args.what == 'sp':
-        main_scene_performers(target)
+        main_scene_performers()
     elif args.what == 'ds':
-        main_duplicate_scenes(target)
+        main_duplicate_scenes()
     elif args.what == 'dp':
-        main_duplicate_performers(target)
+        main_duplicate_performers()
 
-def main_scene_performers(target: Path):
+def main_scene_performers():
+    from .paths import path_scene_performers
     data = ScenePerformers()
-    data.write(target / 'scene_performers.json')
+    data.write(path_scene_performers)
     print(f'Success: {len(data)} scene entries')
 
-def main_duplicate_scenes(target: Path):
+def main_duplicate_scenes():
+    from .paths import path_duplicate_scenes
     data = DuplicateScenes()
-    data.write(target / 'duplicate_scenes.json')
+    data.write(path_duplicate_scenes)
     print(f'Success: {len(data)} scene entries')
 
-def main_duplicate_performers(target: Path):
+def main_duplicate_performers():
+    from .paths import path_duplicate_performers
     data = DuplicatePerformers()
-    data.write(target / 'duplicate_performers.json')
+    data.write(path_duplicate_performers)
     print(f'Success: {len(data)} performer entries')
 
 
