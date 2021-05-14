@@ -203,7 +203,7 @@ class ScenePerformers(_DataExtractor):
                 target.append(entry)
 
             # skip entries tagged with [new] as they are marked to be created
-            if by_status.get('new'):
+            if self.skip_no_id and by_status.get('new'):
                 formatted_new_tagged = [format_performer('', i, False) for i in by_status['new']]
                 print(
                     f'Row {row_num:<4} | Skipped due to [new]-tagged performers: '
@@ -212,7 +212,7 @@ class ScenePerformers(_DataExtractor):
                 continue
             # skip entries tagged with [edit] as they are marked to be edited
             #   and given the information of one of the to-append performers
-            if by_status.get('edit'):
+            if self.skip_no_id and by_status.get('edit'):
                 formatted_edit_tagged = [format_performer('', i, False) for i in by_status['edit']]
                 print(
                     f'Row {row_num:<4} | Skipped due to [edit]-tagged performers: '
