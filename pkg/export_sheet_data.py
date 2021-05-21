@@ -146,6 +146,7 @@ class ScenePerformers(_DataExtractor):
                 continue
             # no changes
             if len(all_entries) == 0:
+                print(f'Row {row_num:<4} | WARNING: Skipped due to no changes.')
                 continue
 
             by_status: Dict[Optional[str], List[AnyPerformerEntry]] = {}
@@ -154,6 +155,14 @@ class ScenePerformers(_DataExtractor):
                 target = by_status.setdefault(status, [])
                 target.append(entry)
 
+            # skip entries tagged with [merge] as they are marked to be merged into the paired performer
+            if self.skip_no_id and by_status.get('merge'):
+                formatted_merge_tagged = [format_performer('', i, False) for i in by_status['merge']]
+                print(
+                    f'Row {row_num:<4} | Skipped due to [merge]-tagged performers: '
+                    + ' , '.join(formatted_merge_tagged)
+                )
+                continue
             # skip entries tagged with [edit] as they are marked to be edited
             #   and given the information of one of the to-append performers
             if self.skip_no_id and by_status.get('edit'):
