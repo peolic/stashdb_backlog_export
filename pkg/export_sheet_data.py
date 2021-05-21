@@ -2,8 +2,8 @@
 import json
 import re
 from pathlib import Path
-from urllib.parse import urlparse, parse_qsl
 from typing import Dict, List, Optional, Set, Tuple
+from urllib.parse import parse_qsl, urlparse
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
@@ -11,12 +11,14 @@ import cssutils   # pip install cssutils
 import requests   # pip install requests
 
 from .models import (
+    AnyPerformerEntry,
     DuplicatePerformersItem,
     DuplicateScenesItem,
     PerformerEntry,
     PerformerUpdateEntry,
     ScenePerformersItem,
 )
+from .utils import format_performer, get_all_entries
 
 # Scene-Performers configuration
 # ==============================
@@ -102,30 +104,6 @@ class _DataExtractor:
         return '\n'.join(json.dumps(item) for item in self.data)
 
 
-def format_performer(action: str, p: PerformerEntry, with_id: bool = True) -> str:
-    p_id = p['id']
-    p_name = p['name']
-    p_dsmbg = p.get('disambiguation')
-    p_as = p['appearance']
-
-    parts = []
-
-    if with_id:
-        parts.append(f'[{p_id}]')
-
-    if action:
-        parts.append(action)
-
-    if p_as:
-        parts.extend((p_as, f'({p_name})'))
-    elif p_dsmbg:
-        parts.extend((p_name, f'[{p_dsmbg}]'))
-    else:
-        parts.append(p_name)
-
-    return ' '.join(parts)
-
-
 class ScenePerformers(_DataExtractor):
     def __init__(self, skip_done: bool = True, skip_no_id: bool = SKIP_NO_ID, **kw):
         """
@@ -158,7 +136,7 @@ class ScenePerformers(_DataExtractor):
             row_num, done, item = self._transform_row(row)
 
             scene_id = item['scene_id']
-            remove, append, update = item['remove'], item['append'], item.get('update', [])
+            all_entries = get_all_entries(item)
 
             # already processed
             if self.skip_done and done:
@@ -167,11 +145,11 @@ class ScenePerformers(_DataExtractor):
             if not scene_id:
                 continue
             # no changes
-            if len(remove) + len(append) + len(update) == 0:
+            if len(all_entries) == 0:
                 continue
 
-            by_status: Dict[Optional[str], List[PerformerEntry]] = {}
-            for entry in (remove + append + update):
+            by_status: Dict[Optional[str], List[AnyPerformerEntry]] = {}
+            for entry in all_entries:
                 status = entry.get('status')
                 target = by_status.setdefault(status, [])
                 target.append(entry)
@@ -195,7 +173,7 @@ class ScenePerformers(_DataExtractor):
                 continue
             # If this item has any performers that do not have a StashDB ID,
             #   skip the whole item for now, to avoid unwanted deletions.
-            if self.skip_no_id and (no_id := [i for i in (remove + append + update) if not i['id']]):
+            if self.skip_no_id and (no_id := [i for i in all_entries if not i['id']]):
                 formatted_no_id = [format_performer('', i, False) for i in no_id]
                 print(
                     f'Row {row_num:<4} | WARNING: Skipped due to missing performer IDs: '
@@ -324,7 +302,7 @@ class ScenePerformers(_DataExtractor):
                     if obj != 'edits':
                         print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
 
-        entry: PerformerEntry = { 'id': p_id, 'name': name, 'appearance': appearance }
+        entry = PerformerEntry(id=p_id, name=name, appearance=appearance)
         if dsmbg:
             entry['disambiguation'] = dsmbg
         if status:
@@ -361,7 +339,17 @@ class ScenePerformers(_DataExtractor):
                       f"\n  {format_performer('-', a_item)}")
                 continue
 
-            u_item = PerformerUpdateEntry(**a_item, old_appearance=r_item['appearance'])
+            u_item = PerformerUpdateEntry(
+                id=pid,
+                name=a_item['name'],
+                appearance=a_item['appearance'],
+                old_appearance=r_item['appearance'],
+            )
+            if 'disambiguation' in a_item:
+                u_item['disambiguation'] = a_item['disambiguation']
+            if 'status' in a_item:
+                u_item['status'] = a_item['status']
+
             updates.append(u_item)
 
         # Remove the items from remove & append
