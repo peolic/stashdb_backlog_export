@@ -154,14 +154,6 @@ class ScenePerformers(_DataExtractor):
                 target = by_status.setdefault(status, [])
                 target.append(entry)
 
-            # skip entries tagged with [new] as they are marked to be created
-            if self.skip_no_id and by_status.get('new'):
-                formatted_new_tagged = [format_performer('', i, False) for i in by_status['new']]
-                print(
-                    f'Row {row_num:<4} | Skipped due to [new]-tagged performers: '
-                    + ' , '.join(formatted_new_tagged)
-                )
-                continue
             # skip entries tagged with [edit] as they are marked to be edited
             #   and given the information of one of the to-append performers
             if self.skip_no_id and by_status.get('edit'):
@@ -169,6 +161,14 @@ class ScenePerformers(_DataExtractor):
                 print(
                     f'Row {row_num:<4} | Skipped due to [edit]-tagged performers: '
                     + ' , '.join(formatted_edit_tagged)
+                )
+                continue
+            # skip entries tagged with [new] as they are marked to be created
+            if self.skip_no_id and by_status.get('new'):
+                formatted_new_tagged = [format_performer('', i, False) for i in by_status['new']]
+                print(
+                    f'Row {row_num:<4} | Skipped due to [new]-tagged performers: '
+                    + ' , '.join(formatted_new_tagged)
                 )
                 continue
             # If this item has any performers that do not have a StashDB ID,
