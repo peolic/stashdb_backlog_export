@@ -21,6 +21,7 @@ AnyPerformerEntry = Union[PerformerEntry, PerformerUpdateEntry]
 class _ScenePerformersItemOptional(TypedDict, total=False):
     parent_studio: str
     update: List[PerformerUpdateEntry]
+    comment: str
 
 class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
     studio: Optional[str]
