@@ -2,7 +2,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 from urllib.parse import parse_qsl, urlparse
 
 # DEPENDENCIES
@@ -47,6 +47,10 @@ def main_duplicate_performers():
 
 class _DataExtractor:
 
+    class BaseRows(NamedTuple):
+        head: int
+        data: int
+
     def __init__(self, gid: str, reuse_soup: Optional[bs4.BeautifulSoup] = None):
         if reuse_soup is not None:
             self.soup = reuse_soup
@@ -71,6 +75,10 @@ class _DataExtractor:
 
         self.all_rows: bs4.ResultSet = self.sheet.select('tbody > tr')
 
+        self.base_rows = self._get_base_rows()
+        if not self.base_rows:
+            return
+
         self.data = []
 
     def _get_done_classes(self) -> Set[str]:
@@ -88,6 +96,26 @@ class _DataExtractor:
                 classes.update(c.lstrip('.') for c in selector.split(' ') if c.startswith('.s'))
 
         return classes
+
+    def _get_base_rows(self) -> Optional[BaseRows]:
+        # <th style="height:3px;" class="freezebar-cell freezebar-horizontal-handle">
+        frozen_row_handle: Optional[bs4.Tag] = self.sheet.select_one('.freezebar-horizontal-handle')
+        if not frozen_row_handle:
+            print('ERROR: Frozen row handler not found')
+            return
+
+        # <tr>
+        frozen_row: Optional[bs4.Tag] = frozen_row_handle.parent
+        if not frozen_row:
+            print('ERROR: Frozen row not found')
+            return
+
+        row_num = self.all_rows.index(frozen_row)
+        # if frozen row is not set (== 0), default to head=0, data=1
+        return self.BaseRows(
+            head = (row_num - 1) if row_num else 0,
+            data = (row_num + 1) if row_num else 1,
+        )
 
     def _is_row_done(self, row: bs4.Tag) -> bool:
         try:
@@ -116,24 +144,24 @@ class ScenePerformers(_DataExtractor):
 
         super().__init__(gid='1397718590', **kw)
 
-        first_row: bs4.Tag = self.all_rows[0]
+        header_row: bs4.Tag = self.all_rows[self.base_rows.head]
 
-        _studio_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Studio'))
-        _scene_id_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Scene ID'))
-        _remove_columns: List[bs4.Tag] = first_row.find_all('td', text=re.compile(r'\(\d+\) Remove/Replace'))
-        _append_columns: List[bs4.Tag] = first_row.find_all('td', text=re.compile(r'\(\d+\) Add/With'))
+        _studio_column: Optional[bs4.Tag] = header_row.find('td', text=re.compile('Studio'))
+        _scene_id_column: Optional[bs4.Tag] = header_row.find('td', text=re.compile('Scene ID'))
+        _remove_columns: List[bs4.Tag] = header_row.find_all('td', text=re.compile(r'\(\d+\) Remove/Replace'))
+        _append_columns: List[bs4.Tag] = header_row.find_all('td', text=re.compile(r'\(\d+\) Add/With'))
 
         # indices start at 1, we need 0
-        self.column_studio   = -1 + first_row.index(_studio_column)
-        self.column_scene_id = -1 + first_row.index(_scene_id_column)
-        self.columns_remove  = [-1 + first_row.index(c) for c in _remove_columns]
-        self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
+        self.column_studio   = -1 + header_row.index(_studio_column)
+        self.column_scene_id = -1 + header_row.index(_scene_id_column)
+        self.columns_remove  = [-1 + header_row.index(c) for c in _remove_columns]
+        self.columns_append  = [-1 + header_row.index(c) for c in _append_columns]
 
         self._parent_studio_pattern = re.compile(r'^(?P<studio>.+?) \[(?P<parent_studio>.+)\]$')
         self._note_prefix = '# [note] '
 
         self.data: List[ScenePerformersItem] = []
-        for row in self.all_rows[2:]:
+        for row in self.all_rows[self.base_rows.data:]:
             row_num, done, item = self._transform_row(row)
 
             scene_id = item['scene_id']
@@ -400,12 +428,14 @@ class DuplicateScenes(_DataExtractor):
     def __init__(self, **kw):
         super().__init__(gid='1879471751', **kw)
 
+        header_row: bs4.Tag = self.all_rows[self.base_rows.head]
+
         # indices start at 1, we need 0
-        self.column_studio: int  = -1 + self.all_rows[0].index(self.all_rows[0].find('td', text=re.compile('Studio')))
-        self.column_main_id: int = -1 + self.all_rows[0].index(self.all_rows[0].find('td', text=re.compile('Main ID')))
+        self.column_studio: int  = -1 + header_row.index(header_row.find('td', text=re.compile('Studio')))
+        self.column_main_id: int = -1 + header_row.index(header_row.find('td', text=re.compile('Main ID')))
 
         self.data: List[DuplicateScenesItem] = []
-        for row in self.all_rows[2:]:
+        for row in self.all_rows[self.base_rows.data:]:
             done, item = self._transform_row(row)
 
             # already processed
@@ -469,17 +499,17 @@ class DuplicatePerformers(_DataExtractor):
 
         super().__init__(gid='0', **kw)
 
-        first_row: bs4.Tag = self.all_rows[1]
+        header_row: bs4.Tag = self.all_rows[self.base_rows.head]
 
-        _name_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Performer'))
-        _main_id_column: Optional[bs4.Tag] = first_row.find('td', text=re.compile('Main ID'))
+        _name_column: Optional[bs4.Tag] = header_row.find('td', text=re.compile('Performer'))
+        _main_id_column: Optional[bs4.Tag] = header_row.find('td', text=re.compile('Main ID'))
 
         # indices start at 1, we need 0
-        self.column_name = -1 + first_row.index(_name_column)
-        self.column_main_id = -1 + first_row.index(_main_id_column)
+        self.column_name = -1 + header_row.index(_name_column)
+        self.column_main_id = -1 + header_row.index(_main_id_column)
 
         self.data: List[DuplicatePerformersItem] = []
-        for row in self.all_rows[3:]:
+        for row in self.all_rows[self.base_rows.data:]:
             row_num, done, item = self._transform_row(row)
 
             # already processed
