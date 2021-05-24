@@ -60,7 +60,7 @@ class _DataExtractor:
             self.soup = bs4.BeautifulSoup(resp.text, 'html.parser')
 
         # find the class names that are strike/line-through (partially completed entries)
-        self.done_styles = self.get_done_classes()
+        self.done_styles = self._get_done_classes()
 
         _sheet: Optional[bs4.Tag] = self.soup.select_one(f'div[id="{gid}"]')
         if not _sheet:
@@ -73,7 +73,7 @@ class _DataExtractor:
 
         self.data = []
 
-    def get_done_classes(self) -> Set[str]:
+    def _get_done_classes(self) -> Set[str]:
         style: Optional[bs4.Tag] = self.soup.select_one('head > style')
         if style is None:
             print('WARNING: Unable to determine partially completed entries')
