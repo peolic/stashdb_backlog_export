@@ -1,6 +1,45 @@
-from typing import List
+import re
+from typing import List, Optional, Tuple
+from urllib.parse import parse_qsl, urlparse
+
+from bs4.element import Tag
 
 from .models import AnyPerformerEntry, ScenePerformersItem
+
+
+def parse_google_redirect_url(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return None
+
+    try:
+        url_p = urlparse(url)
+
+        if url_p.hostname == 'www.google.com' and url_p.path == '/url':
+            url = dict(parse_qsl(url_p.query))['q']
+            url = urlparse(url)._replace(query=None, fragment=None).geturl()
+
+        return url
+
+    except (ValueError, KeyError):
+        return None
+
+
+def get_cell_url(cell: Tag) -> Optional[str]:
+    try:
+        return parse_google_redirect_url(
+            cell.select_one('a').attrs['href']
+        )
+    except (AttributeError, KeyError):
+        return None
+
+
+STASHDB_UUID_PATTERN = re.compile(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})')
+
+def parse_stashdb_url(url: str) -> Tuple[Optional[str], Optional[str]]:
+    if match := STASHDB_UUID_PATTERN.search(url):
+        return match.group(1), match.group(2)
+
+    return None, None
 
 
 def get_all_entries(item: ScenePerformersItem) -> List[AnyPerformerEntry]:

@@ -3,7 +3,6 @@ import json
 import re
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Union
-from urllib.parse import parse_qsl, urlparse
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
@@ -18,7 +17,7 @@ from .models import (
     PerformerUpdateEntry,
     ScenePerformersItem,
 )
-from .utils import format_performer, get_all_entries
+from .utils import format_performer, get_all_entries, get_cell_url, parse_stashdb_url
 
 # Scene-Performers configuration
 # ==============================
@@ -337,34 +336,33 @@ class ScenePerformers(_DataExtractor):
             appearance = None
             dsmbg = None
 
-        try:
-            url: str = cell.select_one('a').attrs['href']
+        # Extract performer ID from url
+        url = get_cell_url(cell)
 
-            url_p = urlparse(url)
-            if url_p.hostname == 'www.google.com' and url_p.path == '/url':
-                url = dict(parse_qsl(url_p.query))['q']
-                url = urlparse(url)._replace(query=None, fragment=None).geturl()
-        except (AttributeError, KeyError):
+        if not url:
             if status != 'new':
                 print(f'Row {row_num:<4} | WARNING: Missing performer ID: {raw_name}')
             p_id = None
+
         else:
-            match = re.search(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})$', url)
-            if match is None:
+            obj, uuid = parse_stashdb_url(url)
+
+            if obj == 'performers' and uuid:
+                p_id = uuid
+
+            elif obj is None or uuid is None:
                 # if not self.skip_no_id:
                 #     print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
                 p_id = None
+
             else:
-                obj = match.group(1)
-                p_id = match.group(2)
-                if obj != 'performers':
-                    p_id = None
-                    # if obj == 'edits':
-                    #     if not self.skip_no_id:
-                    #         print(f"Row {row_num:<4} | WARNING: Edit ID found for: {raw_name}")
-                    # else:
-                    if obj != 'edits':
-                        print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
+                p_id = None
+                # if obj == 'edits':
+                #     if not self.skip_no_id:
+                #         print(f"Row {row_num:<4} | WARNING: Edit ID found for: {raw_name}")
+                # else:
+                if obj != 'edits':
+                    print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
 
         entry = PerformerEntry(id=p_id, name=name, appearance=appearance)
         if dsmbg:
