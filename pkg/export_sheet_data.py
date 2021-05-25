@@ -149,6 +149,13 @@ class _DataExtractor:
     def __str__(self):
         return '\n'.join(json.dumps(item) for item in self.data)
 
+    def __iter__(self):
+        for item in self.data:
+            yield item
+
+    def __len__(self):
+        return len(self.data)
+
 
 class ScenePerformers(_DataExtractor):
     def __init__(self, skip_done: bool = True, skip_no_id: bool = SKIP_NO_ID, **kw):
@@ -426,13 +433,6 @@ class ScenePerformers(_DataExtractor):
 
         return '\n'.join(notes)
 
-    def __iter__(self):
-        for item in self.data:
-            yield item
-
-    def __len__(self):
-        return len(self.data)
-
 
 class DuplicateScenes(_DataExtractor):
     def __init__(self, **kw):
@@ -487,13 +487,6 @@ class DuplicateScenes(_DataExtractor):
             results.append(scene_id)
 
         return results
-
-    def __iter__(self):
-        for item in self.data:
-            yield item
-
-    def __len__(self):
-        return len(self.data)
 
 
 class DuplicatePerformers(_DataExtractor):
@@ -564,10 +557,3 @@ class DuplicatePerformers(_DataExtractor):
             results.append(p_id)
 
         return results
-
-    def __iter__(self):
-        for item in self.data:
-            yield item
-
-    def __len__(self):
-        return len(self.data)
