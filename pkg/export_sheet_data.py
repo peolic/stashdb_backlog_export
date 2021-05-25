@@ -2,7 +2,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Union
+from typing import Dict, List, Literal, NamedTuple, Optional, Set, Tuple, Union, get_args
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
@@ -15,6 +15,9 @@ from .models import (
     DuplicateScenesItem,
     PerformerEntry,
     PerformerUpdateEntry,
+    SceneChangeFieldType,
+    SceneChangeItem,
+    SceneFixesItem,
     ScenePerformersItem,
 )
 from .utils import format_performer, get_all_entries, get_cell_url, parse_stashdb_url
@@ -29,6 +32,12 @@ def main_scene_performers():
     from .paths import path_scene_performers
     data = ScenePerformers()
     data.write(path_scene_performers)
+    print(f'Success: {len(data)} scene entries')
+
+def main_scenes_fixes():
+    from .paths import path_scene_fixes
+    data = SceneFixes()
+    data.write(path_scene_fixes)
     print(f'Success: {len(data)} scene entries')
 
 def main_duplicate_scenes():
@@ -435,6 +444,87 @@ class ScenePerformers(_DataExtractor):
             return None
 
         return '\n'.join(notes)
+
+
+class SceneFixes(_DataExtractor):
+    def __init__(self, skip_done: bool = True, skip_manual: bool = True, **kw):
+        """
+        Args:
+            skip_done   - Skip rows that are marked as done.
+            skip_manual - Skip rows that must be applied manually because they
+                            don't provide a new data value for the field.
+        """
+        self.skip_done = skip_done
+        self.skip_no_new_data = skip_manual
+
+        super().__init__(gid='1419170166', **kw)
+
+        self.column_scene_id   = self.get_column_index('td', text=re.compile('Scene ID'))
+        self.column_field      = self.get_column_index('td', text=re.compile('Field'))
+        self.column_new_data   = self.get_column_index('td', text=re.compile('New Data'))
+        self.column_correction = self.get_column_index('td', text=re.compile('Correction'))
+
+        self._scene_changes: Dict[str, List[SceneChangeItem]] = {}
+        for row in self.data_rows:
+            row = self._transform_row(row)
+
+            # already processed
+            if self.skip_done and row.done:
+                continue
+            # empty row or error
+            if not row.scene_id or not row.change:
+                continue
+            # no new data
+            if self.skip_no_new_data and not row.change['new_data']:
+                continue
+
+            self._scene_changes.setdefault(row.scene_id, []).append(row.change)
+
+        self.data = [
+            SceneFixesItem(
+                scene_id=scene_id,
+                changes=changes,
+            )
+            for scene_id, changes
+            in self._scene_changes.items()
+        ]
+        del self._scene_changes
+
+    class RowResult(NamedTuple):
+        num: int
+        done: bool
+        scene_id: str
+        change: Optional[SceneChangeItem]
+
+    def _transform_row(self, row: bs4.Tag) -> RowResult:
+        done = self._is_row_done(row)
+        row_num = int(row.select_one('th').text)
+
+        all_cells = row.select('td')
+
+        scene_id: str = all_cells[self.column_scene_id].text.strip()
+        field: Literal['', SceneChangeFieldType] = all_cells[self.column_field].text.strip()
+        correction: Optional[str] = all_cells[self.column_correction].text.strip() or None
+
+        new_data_cell: bs4.Tag = all_cells[self.column_new_data]
+        new_data = get_cell_url(new_data_cell)
+        if not new_data:
+            new_data: Optional[str] = new_data_cell.text.strip() or None
+
+        if not scene_id:
+            return self.RowResult(row_num, done, scene_id, None)
+
+        if not field or field not in get_args(SceneChangeFieldType):
+            print(f'Row {row_num:<4} | ERROR: Field {field!r} is invalid.')
+            return self.RowResult(row_num, done, scene_id, None)
+
+        change = SceneChangeItem(
+            field=field,
+            new_data=new_data,
+            correction=correction,
+        )
+
+        return self.RowResult(row_num, done, scene_id, change)
 
 
 class DuplicateScenes(_DataExtractor):

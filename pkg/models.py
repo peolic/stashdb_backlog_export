@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict, Union
+from typing import List, Literal, Optional, TypedDict, Union
 
 class _PerformerEntryOptional(TypedDict, total=False):
     status: Optional[str]
@@ -28,6 +28,28 @@ class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
     scene_id: str
     remove: List[PerformerEntry]
     append: List[PerformerEntry]
+
+
+SceneChangeFieldType = Literal[
+    'Overall',
+    'Title',
+    'Description',
+    'Date',
+    'Studio',
+    'Director',
+    'Duration',
+    'Image',
+    'Studio URL',
+]
+
+class SceneChangeItem(TypedDict):
+    field: SceneChangeFieldType
+    new_data: Optional[str]
+    correction: Optional[str]
+
+class SceneFixesItem(TypedDict):
+    scene_id: str
+    changes: List[SceneChangeItem]
 
 
 class DuplicateScenesItem(TypedDict):
