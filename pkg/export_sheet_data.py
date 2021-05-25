@@ -179,20 +179,20 @@ class ScenePerformers(_DataExtractor):
 
         self.data: List[ScenePerformersItem] = []
         for row in self.data_rows:
-            row_num, done, item = self._transform_row(row)
+            row = self._transform_row(row)
 
-            scene_id = item['scene_id']
-            all_entries = get_all_entries(item)
+            scene_id = row.item['scene_id']
+            all_entries = get_all_entries(row.item)
 
             # already processed
-            if self.skip_done and done:
+            if self.skip_done and row.done:
                 continue
             # empty row
             if not scene_id:
                 continue
             # no changes
             if len(all_entries) == 0:
-                print(f'Row {row_num:<4} | WARNING: Skipped due to no changes.')
+                print(f'Row {row.num:<4} | WARNING: Skipped due to no changes.')
                 continue
 
             by_status: Dict[Optional[str], List[AnyPerformerEntry]] = {}
@@ -205,7 +205,7 @@ class ScenePerformers(_DataExtractor):
             if self.skip_no_id and by_status.get('merge'):
                 formatted_merge_tagged = [format_performer('', i, False) for i in by_status['merge']]
                 print(
-                    f'Row {row_num:<4} | Skipped due to [merge]-tagged performers: '
+                    f'Row {row.num:<4} | Skipped due to [merge]-tagged performers: '
                     + ' , '.join(formatted_merge_tagged)
                 )
                 continue
@@ -214,7 +214,7 @@ class ScenePerformers(_DataExtractor):
             if self.skip_no_id and by_status.get('edit'):
                 formatted_edit_tagged = [format_performer('', i, False) for i in by_status['edit']]
                 print(
-                    f'Row {row_num:<4} | Skipped due to [edit]-tagged performers: '
+                    f'Row {row.num:<4} | Skipped due to [edit]-tagged performers: '
                     + ' , '.join(formatted_edit_tagged)
                 )
                 continue
@@ -222,7 +222,7 @@ class ScenePerformers(_DataExtractor):
             if self.skip_no_id and by_status.get('new'):
                 formatted_new_tagged = [format_performer('', i, False) for i in by_status['new']]
                 print(
-                    f'Row {row_num:<4} | Skipped due to [new]-tagged performers: '
+                    f'Row {row.num:<4} | Skipped due to [new]-tagged performers: '
                     + ' , '.join(formatted_new_tagged)
                 )
                 continue
@@ -231,12 +231,12 @@ class ScenePerformers(_DataExtractor):
             if self.skip_no_id and (no_id := [i for i in all_entries if not i['id']]):
                 formatted_no_id = [format_performer('', i, False) for i in no_id]
                 print(
-                    f'Row {row_num:<4} | WARNING: Skipped due to missing performer IDs: '
+                    f'Row {row.num:<4} | WARNING: Skipped due to missing performer IDs: '
                     + ' , '.join(formatted_no_id)
                 )
                 continue
 
-            self.data.append(item)
+            self.data.append(row.item)
 
     def _is_row_done(self, row: bs4.Tag) -> bool:
         """Override base class method because of first column being used for 'submitted' status."""
@@ -246,7 +246,12 @@ class ScenePerformers(_DataExtractor):
         v_cell = cells[0] if len(cells) == 1 else cells[1]
         return v_cell.attrs['xlink:href'] == '#checkedCheckboxId'
 
-    def _transform_row(self, row: bs4.Tag) -> Tuple[int, bool, ScenePerformersItem]:
+    class RowResult(NamedTuple):
+        num: int
+        done: bool
+        item: ScenePerformersItem
+
+    def _transform_row(self, row: bs4.Tag) -> RowResult:
         done = self._is_row_done(row)
         row_num = int(row.select_one('th').text)
 
@@ -278,7 +283,7 @@ class ScenePerformers(_DataExtractor):
         if note:
             item['comment'] = note
 
-        return row_num, done, item
+        return self.RowResult(row_num, done, item)
 
     def _get_change_entries(self, cells: List[bs4.Tag], row_num: int):
         results: List[PerformerEntry] = []
@@ -443,18 +448,22 @@ class DuplicateScenes(_DataExtractor):
 
         self.data: List[DuplicateScenesItem] = []
         for row in self.data_rows:
-            done, item = self._transform_row(row)
+            row = self._transform_row(row)
 
             # already processed
-            if done:
+            if row.done:
                 continue
             # useless row
-            if not item['main_id'] or not item['duplicates']:
+            if not row.item['main_id'] or not row.item['duplicates']:
                 continue
 
-            self.data.append(item)
+            self.data.append(row.item)
 
-    def _transform_row(self, row: bs4.Tag) -> Tuple[bool, DuplicateScenesItem]:
+    class RowResult(NamedTuple):
+        done: bool
+        item: DuplicateScenesItem
+
+    def _transform_row(self, row: bs4.Tag) -> RowResult:
         done = self._is_row_done(row)
 
         all_cells = row.select('td')
@@ -462,7 +471,7 @@ class DuplicateScenes(_DataExtractor):
         main_id: str = all_cells[self.column_main_id].text.strip()
         duplicates: List[str] = self._get_duplicate_scene_ids(all_cells[self.column_main_id:])
 
-        return done, { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates }
+        return self.RowResult(done, { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates })
 
     def _get_duplicate_scene_ids(self, cells: List[bs4.Tag]) -> List[str]:
         results = []
@@ -504,21 +513,26 @@ class DuplicatePerformers(_DataExtractor):
 
         self.data: List[DuplicatePerformersItem] = []
         for row in self.data_rows:
-            row_num, done, item = self._transform_row(row)
+            row = self._transform_row(row)
 
             # already processed
-            if self.skip_done and done:
+            if self.skip_done and row.done:
                 continue
             # empty row
-            if not item['main_id']:
+            if not row.item['main_id']:
                 continue
             # no duplicates listed
-            if not item['duplicates']:
+            if not row.item['duplicates']:
                 continue
 
-            self.data.append(item)
+            self.data.append(row.item)
 
-    def _transform_row(self, row: bs4.Tag) -> Tuple[int, bool, DuplicatePerformersItem]:
+    class RowResult(NamedTuple):
+        num: int
+        done: bool
+        item: DuplicatePerformersItem
+
+    def _transform_row(self, row: bs4.Tag) -> RowResult:
         done = self._is_row_done(row)
         row_num = int(row.select_one('th').text)
 
@@ -528,7 +542,7 @@ class DuplicatePerformers(_DataExtractor):
         main_id: str = all_cells[self.column_main_id].text.strip()
         duplicate_ids: List[str] = self._get_duplicate_performer_ids(all_cells[self.column_main_id:], row_num)
 
-        return row_num, done, { 'name': name, 'main_id': main_id, 'duplicates': duplicate_ids }
+        return self.RowResult(row_num, done, { 'name': name, 'main_id': main_id, 'duplicates': duplicate_ids })
 
     def _get_duplicate_performer_ids(self, cells: List[bs4.Tag], row_num: int):
         results: List[str] = []
