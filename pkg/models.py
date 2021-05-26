@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, TypedDict, Union
+from typing import Dict, List, Literal, Optional, TypedDict, Union
 
 class _PerformerEntryOptional(TypedDict, total=False):
     status: Optional[str]
@@ -47,9 +47,7 @@ class SceneChangeItem(TypedDict):
     new_data: Optional[str]
     correction: Optional[str]
 
-class SceneFixesItem(TypedDict):
-    scene_id: str
-    changes: List[SceneChangeItem]
+SceneFixesDict = Dict[str, List[SceneChangeItem]]
 
 
 class DuplicateScenesItem(TypedDict):

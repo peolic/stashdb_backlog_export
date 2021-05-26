@@ -17,7 +17,7 @@ from .models import (
     PerformerUpdateEntry,
     SceneChangeFieldType,
     SceneChangeItem,
-    SceneFixesItem,
+    SceneFixesDict,
     ScenePerformersItem,
 )
 from .utils import format_performer, get_all_entries, get_cell_url, parse_stashdb_url
@@ -473,7 +473,7 @@ class SceneFixes(_DataExtractor):
         self.column_new_data   = self.get_column_index('td', text=re.compile('New Data'))
         self.column_correction = self.get_column_index('td', text=re.compile('Correction'))
 
-        self._scene_changes: Dict[str, List[SceneChangeItem]] = {}
+        self.data: SceneFixesDict = {}
         for row in self.data_rows:
             row = self._transform_row(row)
 
@@ -487,17 +487,7 @@ class SceneFixes(_DataExtractor):
             if self.skip_no_new_data and not row.change['new_data']:
                 continue
 
-            self._scene_changes.setdefault(row.scene_id, []).append(row.change)
-
-        self.data = [
-            SceneFixesItem(
-                scene_id=scene_id,
-                changes=changes,
-            )
-            for scene_id, changes
-            in self._scene_changes.items()
-        ]
-        del self._scene_changes
+            self.data.setdefault(row.scene_id, []).append(row.change)
 
     class RowResult(NamedTuple):
         num: int
