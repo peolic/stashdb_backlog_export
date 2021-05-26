@@ -59,6 +59,9 @@ class _DataExtractor:
         head: int
         data: int
 
+    class CheckboxNotFound(Exception):
+        ...
+
     def __init__(self, gid: str, reuse_soup: Optional[bs4.BeautifulSoup] = None):
         if reuse_soup is not None:
             self.soup = reuse_soup
@@ -143,11 +146,18 @@ class _DataExtractor:
     def data_rows(self) -> List[bs4.Tag]:
         return self._all_rows[self._base_rows.data:]
 
-    def _is_row_done(self, row: bs4.Tag) -> bool:
+    def _is_row_done(self, row: bs4.Tag, which: int = 1) -> bool:
+        checkboxes = row.select('td use[xlink\\:href$="CheckboxId"]')
+        if not checkboxes:
+            raise self.CheckboxNotFound('No checkboxes found!')
+
         try:
-            return row.select_one('td:first-of-type use').attrs['xlink:href'] == '#checkedCheckboxId'
-        except (AttributeError, KeyError):
-            return False
+            checkbox: bs4.Tag = checkboxes[which - 1]
+        except IndexError:
+            es = 'es' if (count := len(checkboxes)) > 1 else ''
+            raise self.CheckboxNotFound(f'Only {count} checkbox{es} found, cannot get checkbox #{which}!')
+
+        return checkbox.attrs['xlink:href'] == '#checkedCheckboxId'
 
     def write(self, target: Path):
         target.write_bytes(
@@ -247,12 +257,11 @@ class ScenePerformers(_DataExtractor):
             self.data.append(row.item)
 
     def _is_row_done(self, row: bs4.Tag) -> bool:
-        """Override base class method because of first column being used for 'submitted' status."""
-        cells = row.select('td use')
-        if not cells:
-            return False
-        v_cell = cells[0] if len(cells) == 1 else cells[1]
-        return v_cell.attrs['xlink:href'] == '#checkedCheckboxId'
+        """Override base class method because the first column is sometimes being used for 'submitted' status."""
+        try:
+            return super()._is_row_done(row, 2)
+        except self.CheckboxNotFound:
+            return super()._is_row_done(row)
 
     class RowResult(NamedTuple):
         num: int
