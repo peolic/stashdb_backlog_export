@@ -2,7 +2,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Literal, NamedTuple, Optional, Set, Tuple, Union, get_args
+from typing import Dict, List, Literal, NamedTuple, Optional, Set, Tuple, Union
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
@@ -528,7 +528,7 @@ class SceneFixes(_DataExtractor):
         all_cells = row.select('td')
 
         scene_id: str = all_cells[self.column_scene_id].text.strip()
-        field: Literal['', SceneChangeFieldType] = all_cells[self.column_field].text.strip()
+        field: str = all_cells[self.column_field].text.strip()
         correction: Optional[str] = all_cells[self.column_correction].text.strip() or None
 
         new_data_cell: bs4.Tag = all_cells[self.column_new_data]
@@ -539,17 +539,48 @@ class SceneFixes(_DataExtractor):
         if not scene_id:
             return self.RowResult(row_num, done, scene_id, None)
 
-        if not field or field not in get_args(SceneChangeFieldType):
+        if not field:
+            print(f'Row {row_num:<4} | ERROR: Field is empty.')
+            return self.RowResult(row_num, done, scene_id, None)
+
+        if field in ('Overall',):
+            print(f'Row {row_num:<4} | Skipping non-applicable field {field!r}.')
+            return self.RowResult(row_num, done, scene_id, None)
+
+        try:
+            normalized_field = self._normalize_field(field)
+        except ValueError:
             print(f'Row {row_num:<4} | ERROR: Field {field!r} is invalid.')
             return self.RowResult(row_num, done, scene_id, None)
 
         change = SceneChangeItem(
-            field=field,
+            field=normalized_field,
             new_data=new_data,
             correction=correction,
         )
 
         return self.RowResult(row_num, done, scene_id, change)
+
+    @staticmethod
+    def _normalize_field(field: str) -> SceneChangeFieldType:
+        if field == 'Title':
+            return 'title'
+        if field == 'Description':
+            return 'details'
+        if field == 'Date':
+            return 'date'
+        if field == 'Studio ID':
+            return 'studio_id'
+        if field == 'Director':
+            return 'director'
+        if field == 'Duration':
+            return 'duration'
+        if field == 'Image':
+            return 'image'
+        if field == 'URL':
+            return 'url'
+
+        raise ValueError(f'Unsupported field: {field}')
 
 
 class DuplicateScenes(_DataExtractor):

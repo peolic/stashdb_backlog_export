@@ -31,15 +31,14 @@ class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
 
 
 SceneChangeFieldType = Literal[
-    'Overall',
-    'Title',
-    'Description',
-    'Date',
-    'Studio',
-    'Director',
-    'Duration',
-    'Image',
-    'Studio URL',
+    'title',
+    'details',
+    'date',
+    'studio_id',
+    'director',
+    'duration',
+    'image',
+    'url',
 ]
 
 class SceneChangeItem(TypedDict):
