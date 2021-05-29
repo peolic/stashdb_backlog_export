@@ -69,3 +69,13 @@ def format_performer(action: str, p: AnyPerformerEntry, with_id: bool = True) ->
         parts.append(p_name)
 
     return ' '.join(parts)
+
+
+def format_studio(item: ScenePerformersItem) -> Optional[str]:
+    if not (studio := item['studio']):
+        return None
+
+    if parent_studio := item.get('parent_studio'):
+        return f'{studio} [{parent_studio}]'
+
+    return studio
