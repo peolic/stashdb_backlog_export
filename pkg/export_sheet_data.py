@@ -413,7 +413,7 @@ class ScenePerformers(_DataExtractor):
 
         remove_ids = [i['id'] for i in remove]
         append_ids = [i['id'] for i in append]
-        update_ids = set(remove_ids).intersection(append_ids)
+        update_ids = [i for i in append_ids if i in remove_ids]
 
         for pid in update_ids:
             if pid is None:
