@@ -20,7 +20,7 @@ from .models import (
     SceneFixesDict,
     ScenePerformersItem,
 )
-from .utils import format_performer, get_all_entries, get_cell_url, parse_stashdb_url
+from .utils import format_performer, format_studio, get_all_entries, get_cell_url, parse_stashdb_url
 
 # Scene-Performers configuration
 # ==============================
@@ -51,6 +51,17 @@ def main_duplicate_performers():
     data = DuplicatePerformers()
     data.write(path_duplicate_performers)
     print(f'Success: {len(data)} performer entries')
+
+
+def first_performer_name(item: ScenePerformersItem, entry_type: Literal['update', 'append', 'remove']) -> str:
+    try:
+        return item[entry_type][0]['name']
+    except IndexError:
+        return ''
+    except KeyError:
+        if entry_type == 'update':
+            return ''
+        raise
 
 
 class _DataExtractor:
@@ -160,6 +171,9 @@ class _DataExtractor:
         return checkbox.attrs['xlink:href'] == '#checkedCheckboxId'
 
     def write(self, target: Path):
+        if sort_key := getattr(self, 'sort_key'):
+            self.data.sort(key=sort_key)
+
         target.write_bytes(
             json.dumps(self.data, indent=2).encode('utf-8')
         )
@@ -453,6 +467,18 @@ class ScenePerformers(_DataExtractor):
             return None
 
         return '\n'.join(notes)
+
+    def sort_key(self, item: ScenePerformersItem):
+        return (
+            # Studio name, ASC
+            (format_studio(item) or '').casefold(),
+            # First to-update performer name, ASC
+            first_performer_name(item, 'update').casefold(),
+            # First to-append performer name, ASC
+            first_performer_name(item, 'append').casefold(),
+            # First to-remove performer name, ASC
+            first_performer_name(item, 'remove').casefold(),
+        )
 
 
 class SceneFixes(_DataExtractor):
