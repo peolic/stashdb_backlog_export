@@ -171,7 +171,7 @@ class _DataExtractor:
         return checkbox.attrs['xlink:href'] == '#checkedCheckboxId'
 
     def write(self, target: Path):
-        if sort_key := getattr(self, 'sort_key'):
+        if sort_key := getattr(self, 'sort_key', None):
             self.data.sort(key=sort_key)
 
         target.write_bytes(
