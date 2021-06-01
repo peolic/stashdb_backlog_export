@@ -205,9 +205,9 @@ class ScenePerformers(_DataExtractor):
         self.column_scene_id = self.get_column_index('td', text=re.compile('Scene ID'))
         self.columns_remove  = self.get_all_column_indices('td', text=re.compile(r'\(\d+\) Remove/Replace'))
         self.columns_append  = self.get_all_column_indices('td', text=re.compile(r'\(\d+\) Add/With'))
+        self.column_note     = self.get_column_index('td', text=re.compile('Edit Note'))
 
         self._parent_studio_pattern = re.compile(r'^(?P<studio>.+?) \[(?P<parent_studio>.+)\]$')
-        self._note_prefix = '# [note] '
 
         self.data: List[ScenePerformersItem] = []
         for row in self.data_rows:
@@ -295,7 +295,7 @@ class ScenePerformers(_DataExtractor):
         remove = self._get_change_entries(remove_cells, row_num)
         append = self._get_change_entries(append_cells, row_num)
         update = self._find_updates(remove, append, row_num)
-        note   = self._get_edit_note(remove_cells + append_cells)
+        note   = all_cells[self.column_note].text.strip()
 
         studio_info = {'studio': studio}
         if studio and (parent_studio_match := self._parent_studio_pattern.fullmatch(studio)):
@@ -452,21 +452,6 @@ class ScenePerformers(_DataExtractor):
             append.remove(next(a for a in append if a['id'] == u_item['id']))
 
         return updates
-
-    def _get_edit_note(self, cells: List[bs4.Tag]) -> Optional[str]:
-        notes = []
-
-        for cell in cells:
-            raw_name: str = cell.text.strip()
-            if raw_name.startswith(self._note_prefix):
-                notes.append(
-                    raw_name[len(self._note_prefix):]
-                )
-
-        if not notes:
-            return None
-
-        return '\n'.join(notes)
 
     def sort_key(self, item: ScenePerformersItem):
         return (
