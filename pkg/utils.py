@@ -15,8 +15,8 @@ def parse_google_redirect_url(url: Optional[str]) -> Optional[str]:
         url_p = urlparse(url)
 
         if url_p.hostname == 'www.google.com' and url_p.path == '/url':
-            url = dict(parse_qsl(url_p.query))['q']
-            url = urlparse(url)._replace(query=None, fragment=None).geturl()
+            url_r = dict(parse_qsl(url_p.query))['q']
+            url = urlparse(url_r).geturl()
 
         return url
 
