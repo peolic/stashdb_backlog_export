@@ -85,9 +85,6 @@ class _DataExtractor:
 
             self.soup = bs4.BeautifulSoup(resp.text, 'html.parser')
 
-        # find the class names that are strike/line-through (partially completed entries)
-        self.done_styles = self._get_done_classes()
-
         _sheet: Optional[bs4.Tag] = self.soup.select_one(f'div[id="{gid}"]')
         if not _sheet:
             print('ERROR: Sheet not found')
@@ -102,22 +99,6 @@ class _DataExtractor:
             return
 
         self.data = []
-
-    def _get_done_classes(self) -> Set[str]:
-        style: Optional[bs4.Tag] = self.soup.select_one('head > style')
-        if style is None:
-            print('WARNING: Unable to determine partially completed entries')
-            return set()
-
-        stylesheet = cssutils.parseString(style.decode_contents(), validate=False)
-
-        classes = set()
-        for rule in stylesheet:
-            if rule.type == rule.STYLE_RULE and rule.style.textDecoration == 'line-through':
-                selector: str = rule.selectorText
-                classes.update(c.lstrip('.') for c in selector.split(' ') if c.startswith('.s'))
-
-        return classes
 
     def _get_base_rows(self) -> Optional[BaseRows]:
         # <th style="height:3px;" class="freezebar-cell freezebar-horizontal-handle">
@@ -189,13 +170,44 @@ class _DataExtractor:
         return len(self.data)
 
 
+class _DoneClassesMixin:
+
+    def is_cell_done(self, cell: bs4.Tag) -> bool:
+        if not hasattr(self, '_done_classes'):
+            self._done_classes = self._get_done_classes()
+
+        classes: Optional[List[str]] = cell.attrs.get('class')
+        if classes:
+            return any(c in self._done_classes for c in classes)
+        return False
+
+    def _get_done_classes(self):
+        """Find the class names that are strike/line-through (partially completed entries)."""
+        classes: Set[str] = set()
+
+        soup: bs4.BeautifulSoup = getattr(self, 'soup')
+        style: Optional[bs4.Tag] = soup.select_one('head > style')
+        if style is None:
+            print('WARNING: Unable to determine partially completed entries')
+            return classes
+
+        stylesheet = cssutils.parseString(style.decode_contents(), validate=False)
+
+        for rule in stylesheet:
+            if rule.type == rule.STYLE_RULE and rule.style.textDecoration == 'line-through':
+                selector: str = rule.selectorText
+                classes.update(c.lstrip('.') for c in selector.split(' ') if c.startswith('.s'))
+
+        return classes
+
+
 class _BacklogExtractor(_DataExtractor):
     def __init__(self, gid: str, **kw):
         doc_id = '1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ'
         super().__init__(doc_id=doc_id, gid=gid, **kw)
 
 
-class ScenePerformers(_BacklogExtractor):
+class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
     def __init__(self, skip_done: bool = True, skip_no_id: bool = SKIP_NO_ID, **kw):
         """
         Args:
@@ -352,7 +364,7 @@ class ScenePerformers(_BacklogExtractor):
             return None, raw_name
 
         # skip completed (legacy)
-        if self.skip_done and any(c in self.done_styles for c in cell.attrs.get('class', [])):
+        if self.skip_done and self.is_cell_done(cell):
             return None, raw_name
             print(f'skipped completed {raw_name}')
 
@@ -574,7 +586,7 @@ class SceneFixes(_BacklogExtractor):
         raise ValueError(f'Unsupported field: {field}')
 
 
-class DuplicateScenes(_BacklogExtractor):
+class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
     def __init__(self, **kw):
         super().__init__(gid='1879471751', **kw)
 
@@ -624,7 +636,7 @@ class DuplicateScenes(_BacklogExtractor):
                 continue
 
             # skip completed
-            if any(c in self.done_styles for c in cell.attrs.get('class', [])):
+            if self.is_cell_done(cell):
                 continue
                 print(f'skipped completed {name}')
 
@@ -633,7 +645,7 @@ class DuplicateScenes(_BacklogExtractor):
         return results
 
 
-class DuplicatePerformers(_BacklogExtractor):
+class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
     def __init__(self, skip_done: bool = True, **kw):
         """
         Args:
@@ -695,7 +707,7 @@ class DuplicatePerformers(_BacklogExtractor):
                 continue
 
             # skip completed
-            if any(c in self.done_styles for c in cell.attrs.get('class', [])):
+            if self.is_cell_done(cell):
                 continue
                 print(f'skipped completed {p_id}')
 
