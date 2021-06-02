@@ -73,12 +73,12 @@ class _DataExtractor:
     class CheckboxNotFound(Exception):
         ...
 
-    def __init__(self, gid: str, reuse_soup: Optional[bs4.BeautifulSoup] = None):
+    def __init__(self, doc_id: str, gid: str, reuse_soup: Optional[bs4.BeautifulSoup] = None):
         if reuse_soup is not None:
             self.soup = reuse_soup
         else:
             resp = requests.get(
-                url='https://docs.google.com/spreadsheets/d/1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ/htmlview',
+                url=f'https://docs.google.com/spreadsheets/d/{doc_id}/htmlview',
                 params={'gid': gid},
             )
             resp.raise_for_status()
@@ -189,7 +189,13 @@ class _DataExtractor:
         return len(self.data)
 
 
-class ScenePerformers(_DataExtractor):
+class _BacklogExtractor(_DataExtractor):
+    def __init__(self, gid: str, **kw):
+        doc_id = '1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ'
+        super().__init__(doc_id=doc_id, gid=gid, **kw)
+
+
+class ScenePerformers(_BacklogExtractor):
     def __init__(self, skip_done: bool = True, skip_no_id: bool = SKIP_NO_ID, **kw):
         """
         Args:
@@ -466,7 +472,7 @@ class ScenePerformers(_DataExtractor):
         )
 
 
-class SceneFixes(_DataExtractor):
+class SceneFixes(_BacklogExtractor):
     def __init__(self, skip_done: bool = True, skip_manual: bool = True, **kw):
         """
         Args:
@@ -568,7 +574,7 @@ class SceneFixes(_DataExtractor):
         raise ValueError(f'Unsupported field: {field}')
 
 
-class DuplicateScenes(_DataExtractor):
+class DuplicateScenes(_BacklogExtractor):
     def __init__(self, **kw):
         super().__init__(gid='1879471751', **kw)
 
@@ -627,7 +633,7 @@ class DuplicateScenes(_DataExtractor):
         return results
 
 
-class DuplicatePerformers(_DataExtractor):
+class DuplicatePerformers(_BacklogExtractor):
     def __init__(self, skip_done: bool = True, **kw):
         """
         Args:
