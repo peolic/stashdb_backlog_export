@@ -162,10 +162,6 @@ class _DataExtractor:
     def __str__(self):
         return '\n'.join(json.dumps(item) for item in self.data)
 
-    def __iter__(self):
-        for item in self.data:
-            yield item
-
     def __len__(self):
         return len(self.data)
 
@@ -483,6 +479,9 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
             first_performer_name(item, 'remove').casefold(),
         )
 
+    def __iter__(self):
+        return iter(self.data)
+
 
 class SceneFixes(_BacklogExtractor):
     def __init__(self, skip_done: bool = True, skip_manual: bool = True, **kw):
@@ -585,6 +584,9 @@ class SceneFixes(_BacklogExtractor):
 
         raise ValueError(f'Unsupported field: {field}')
 
+    def __iter__(self):
+        return iter(self.data.items())
+
 
 class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
     def __init__(self, **kw):
@@ -643,6 +645,9 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
             results.append(scene_id)
 
         return results
+
+    def __iter__(self):
+        return iter(self.data)
 
 
 class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
@@ -718,3 +723,6 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
             results.append(p_id)
 
         return results
+
+    def __iter__(self):
+        return iter(self.data)
