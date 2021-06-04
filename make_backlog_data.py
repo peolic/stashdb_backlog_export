@@ -1,8 +1,9 @@
 #!/usr/bin/env python3.8
 # coding: utf-8
 import json
+import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 from pkg.export_sheet_data import ScenePerformers, SceneFixes
@@ -22,6 +23,10 @@ def main():
         change = scenes.setdefault(scene_id, {})
         for fix in fixes:
             change[fix['field']] = fix['new_data']
+            if (correction := fix['correction']) and (urls := re.findall(r'(https?://[^\s]+)', correction)):
+                comments: List[str] = change.setdefault('comments', [])
+                comments.extend(urls)
+
 
     for item in scene_performers:
         change = scenes.setdefault(item['scene_id'], {})
@@ -30,6 +35,9 @@ def main():
         change['performers']['append'] = item['append']
         if update := item.get('update'):
             change['performers']['update'] = update
+        if comment := item.get('comment'):
+            comments: List[str] = change.setdefault('comments', [])
+            comments.append(comment)
 
     data = dict(scenes=scenes, performers={})
     target.write_bytes(json.dumps(data, indent=2).encode('utf-8'))
