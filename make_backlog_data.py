@@ -2,7 +2,9 @@
 # coding: utf-8
 import json
 import re
+from contextlib import suppress
 from pathlib import Path
+from shutil import rmtree
 from typing import Any, Dict, List
 
 
@@ -12,7 +14,17 @@ from pkg.export_sheet_data import ScenePerformers, SceneFixes
 def main():
     script_dir = Path(__file__).parent
 
-    target = script_dir / 'stashdb_backlog.json'
+    target_path = script_dir / 'backlog_data'
+
+    scenes_target = target_path / 'scenes'
+    with suppress(FileNotFoundError):
+        rmtree(scenes_target)
+
+    # performers_target = target_path / 'performers'
+    # with suppress(FileNotFoundError):
+    #     rmtree(performers_target)
+
+    index_path = target_path / 'index.json'
 
     scene_performers = ScenePerformers(skip_no_id=False)
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
@@ -39,8 +51,17 @@ def main():
             comments: List[str] = change.setdefault('comments', [])
             comments.append(comment)
 
-    data = dict(scenes=scenes, performers={})
-    target.write_bytes(json.dumps(data, indent=2).encode('utf-8'))
+    index = dict(scenes=list(scenes.keys()), performers=[])
+    index_path.write_bytes(json.dumps(index, indent=2).encode('utf-8'))
+
+    def make_object_path(uuid: str) -> str:
+        return f'{uuid[:2]}/{uuid}.json'
+
+    for scene_id, scene in scenes.items():
+        scene_path = scenes_target / make_object_path(scene_id)
+        scene_path.parent.mkdir(parents=True, exist_ok=True)
+        scene_path.write_bytes(json.dumps(scene, indent=2).encode('utf-8'))
+
     print('done')
 
 
