@@ -29,16 +29,29 @@ def main():
     scene_performers = ScenePerformers(skip_no_id=False)
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
 
+    scene_performers.data.sort(key=scene_performers.sort_key)
+
     scenes: Dict[str, Dict[str, Any]] = {}
+
+    pattern_find_urls = re.compile(r'(https?://[^\s]+)')
 
     for scene_id, fixes in scene_fixes:
         change = scenes.setdefault(scene_id, {})
         for fix in fixes:
             change[fix['field']] = fix['new_data']
-            if (correction := fix['correction']) and (urls := re.findall(r'(https?://[^\s]+)', correction)):
+            if (correction := fix['correction']) and (urls := pattern_find_urls.findall(correction)):
                 comments: List[str] = change.setdefault('comments', [])
                 comments[:] = list(dict.fromkeys(comments + urls))
 
+    pattern_comment_delimiter = re.compile(r' [;\n] ')
+
+    def process_comment(comment: str) -> List[str]:
+        comments = pattern_comment_delimiter.split(comment)
+        for i, c in enumerate(comments[:]):
+            if ' + ' in c:
+                pre, sep, post = c.partition(' + ')
+                comments[i:i + 1] = [pre + sep, post]
+        return comments
 
     for item in scene_performers:
         change = scenes.setdefault(item['scene_id'], {})
@@ -49,7 +62,7 @@ def main():
             change['performers']['update'] = update
         if comment := item.get('comment'):
             comments: List[str] = change.setdefault('comments', [])
-            comments[:] = list(dict.fromkeys(comments + [comment]))
+            comments[:] = list(dict.fromkeys(comments + process_comment(comment)))
 
     def get_keys(entry: Dict[str, Any]):
         return ','.join(k for k in entry.keys() if k != 'comments')
