@@ -37,7 +37,7 @@ def main():
             change[fix['field']] = fix['new_data']
             if (correction := fix['correction']) and (urls := re.findall(r'(https?://[^\s]+)', correction)):
                 comments: List[str] = change.setdefault('comments', [])
-                comments.extend(urls)
+                comments[:] = list(dict.fromkeys(comments + urls))
 
 
     for item in scene_performers:
@@ -49,7 +49,7 @@ def main():
             change['performers']['update'] = update
         if comment := item.get('comment'):
             comments: List[str] = change.setdefault('comments', [])
-            comments.append(comment)
+            comments[:] = list(dict.fromkeys(comments + [comment]))
 
     index = dict(scenes=list(scenes.keys()), performers=[])
     index_path.write_bytes(json.dumps(index, indent=2).encode('utf-8'))
