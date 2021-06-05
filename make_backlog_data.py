@@ -51,7 +51,15 @@ def main():
             comments: List[str] = change.setdefault('comments', [])
             comments[:] = list(dict.fromkeys(comments + [comment]))
 
-    index = dict(scenes=list(scenes.keys()), performers=[])
+    def get_keys(entry: Dict[str, Any]):
+        return ','.join(k for k in entry.keys() if k != 'comments')
+
+    # "scene_id": "title,date,performers"
+    scenes_index = dict(zip(
+        scenes.keys(),
+        map(get_keys, scenes.values()),
+    ))
+    index = dict(scenes=scenes_index, performers=[])
     index_path.write_bytes(json.dumps(index, indent=2).encode('utf-8'))
 
     def make_object_path(uuid: str) -> str:
