@@ -45,14 +45,6 @@ def main():
 
     pattern_comment_delimiter = re.compile(r' [;\n] ')
 
-    def process_comment(comment: str) -> List[str]:
-        comments = pattern_comment_delimiter.split(comment)
-        for i, c in enumerate(comments[:]):
-            if ' + ' in c:
-                pre, sep, post = c.partition(' + ')
-                comments[i:i + 1] = [pre + sep, post]
-        return comments
-
     for item in scene_performers:
         change = scenes.setdefault(item['scene_id'], {})
         change['performers'] = {}
@@ -62,7 +54,7 @@ def main():
             change['performers']['update'] = update
         if comment := item.get('comment'):
             comments: List[str] = change.setdefault('comments', [])
-            comments[:] = list(dict.fromkeys(comments + process_comment(comment)))
+            comments[:] = list(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
     def get_keys(entry: Dict[str, Any]):
         return ','.join(k for k in entry.keys() if k != 'comments')
