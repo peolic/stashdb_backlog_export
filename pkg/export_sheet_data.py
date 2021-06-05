@@ -64,6 +64,12 @@ def first_performer_name(item: ScenePerformersItem, entry_type: Literal['update'
         raise
 
 
+def get_multiline_text(cell: bs4.Tag, **get_text_kwargs) -> str:
+    for br in cell.find_all('br'):
+        br.replace_with('\n')
+    return cell.get_text(**get_text_kwargs)
+
+
 class _DataExtractor:
 
     class BaseRows(NamedTuple):
@@ -309,7 +315,7 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
         remove = self._get_change_entries(remove_cells, row_num)
         append = self._get_change_entries(append_cells, row_num)
         update = self._find_updates(remove, append, row_num)
-        note   = all_cells[self.column_note].text.strip()
+        note   = get_multiline_text(all_cells[self.column_note]).strip()
 
         studio_info = {'studio': studio}
         if studio and (parent_studio_match := self._parent_studio_pattern.fullmatch(studio)):
@@ -531,12 +537,12 @@ class SceneFixes(_BacklogExtractor):
 
         scene_id: str = all_cells[self.column_scene_id].text.strip()
         field: str = all_cells[self.column_field].text.strip()
-        correction: Optional[str] = all_cells[self.column_correction].text.strip() or None
+        correction: Optional[str] = get_multiline_text(all_cells[self.column_correction]).strip() or None
 
         new_data_cell: bs4.Tag = all_cells[self.column_new_data]
         new_data = get_cell_url(new_data_cell)
         if not new_data:
-            new_data: Optional[str] = new_data_cell.text.strip() or None
+            new_data: Optional[str] = get_multiline_text(new_data_cell).strip() or None
 
         if not scene_id:
             return self.RowResult(row_num, done, scene_id, None)
