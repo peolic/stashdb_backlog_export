@@ -70,10 +70,14 @@ def main():
     def make_object_path(uuid: str) -> str:
         return f'{uuid[:2]}/{uuid}.json'
 
+    def with_sorted_toplevel_keys(data: Dict[str, Any]) -> Dict[str, Any]:
+        return dict(sorted(data.items(), key=lambda p: p[0]))
+
     for scene_id, scene in scenes.items():
         scene_path = scenes_target / make_object_path(scene_id)
         scene_path.parent.mkdir(parents=True, exist_ok=True)
-        scene_path.write_bytes(json.dumps(scene, indent=2).encode('utf-8'))
+        scene_data = with_sorted_toplevel_keys(scene)
+        scene_path.write_bytes(json.dumps(scene_data, indent=2).encode('utf-8'))
 
     print('done')
 
