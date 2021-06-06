@@ -57,7 +57,7 @@ def main():
             comments[:] = list(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
     def get_keys(entry: Dict[str, Any]):
-        return ','.join(k for k in entry.keys() if k != 'comments')
+        return ','.join(k for k in sorted(entry.keys()) if k != 'comments')
 
     # "scene_id": "title,date,performers"
     scenes_index = dict(zip(
