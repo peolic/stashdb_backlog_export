@@ -561,9 +561,15 @@ class SceneFixes(_BacklogExtractor):
             print(f'Row {row_num:<4} | ERROR: Field {field!r} is invalid.')
             return self.RowResult(row_num, done, scene_id, None)
 
+        try:
+            processed_new_data = self._transform_new_data(normalized_field, new_data)
+        except ValueError:
+            print(f'Row {row_num:<4} | ERROR: Value {new_data!r} for field {field!r} is invalid.')
+            return self.RowResult(row_num, done, scene_id, None)
+
         change = SceneChangeItem(
             field=normalized_field,
-            new_data=new_data,
+            new_data=processed_new_data,
             correction=correction,
         )
 
@@ -589,6 +595,20 @@ class SceneFixes(_BacklogExtractor):
             return 'url'
 
         raise ValueError(f'Unsupported field: {field}')
+
+    @staticmethod
+    def _transform_new_data(field: SceneChangeFieldType, value: Optional[str]) -> Optional[str]:
+        if field == 'duration':
+            try:
+                parts = value.split(':')
+            except AttributeError:
+                raise ValueError
+
+            parts[0:0] = ('0',) * (3 - len(parts))
+            (hours, minutes, seconds) = [int(i) for i in parts]
+            return str(hours * 3600 + minutes * 60 + seconds)
+
+        return value
 
     def __iter__(self):
         return iter(self.data.items())
