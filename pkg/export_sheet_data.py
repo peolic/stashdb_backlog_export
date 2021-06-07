@@ -752,3 +752,37 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
 
     def __iter__(self):
         return iter(self.data)
+
+
+class PerformerToSplitUp(_BacklogExtractor):
+    def __init__(self, skip_done: bool = True, **kw):
+        """
+        NOTE: PARTIAL EXTRACTOR
+
+        Args:
+            skip_done - Skip rows and/or cells that are marked as done.
+        """
+        self.skip_done = skip_done
+
+        super().__init__(gid='1067038397', **kw)
+
+        self.column_main_id = self.get_column_index('td', text=re.compile('Performer Stash ID'))
+
+        self.data: List[str] = []
+        for row in self.data_rows:
+            # already processed
+            if self.skip_done and self._is_row_done(row):
+                continue
+
+            all_cells = row.select('td')
+            main_id: str = all_cells[self.column_main_id].text.strip()
+
+            # useless row
+            if not main_id:
+                continue
+
+            if match := re.fullmatch(r'[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}', main_id):
+                self.data.append(match.group(0))
+
+    def __iter__(self):
+        return iter(self.data)
