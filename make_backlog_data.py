@@ -24,7 +24,8 @@ def main():
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
     performers_to_split_up = PerformerToSplitUp(reuse_soup=scene_performers.soup)
 
-    scene_performers.data.sort(key=scene_performers.sort_key)
+    scene_performers.sort()
+    performers_to_split_up.sort()
 
     scenes: Dict[str, Dict[str, Any]] = {}
 
@@ -62,8 +63,8 @@ def main():
 
     # "performer_id": "split"
     performers_index = {
-        uuid: 'split'
-        for uuid in performers_to_split_up
+        item['main_id']: 'split'
+        for item in performers_to_split_up
     }
 
     index = dict(scenes=scenes_index, performers=performers_index)

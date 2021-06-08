@@ -15,6 +15,7 @@ from .models import (
     DuplicateScenesItem,
     PerformerEntry,
     PerformerUpdateEntry,
+    PerformersToSplitItem,
     SceneChangeFieldType,
     SceneChangeItem,
     SceneFixesDict,
@@ -157,9 +158,15 @@ class _DataExtractor:
 
         return checkbox.attrs['xlink:href'] == '#checkedCheckboxId'
 
-    def write(self, target: Path):
+    def sort(self):
         if sort_key := getattr(self, 'sort_key', None):
             self.data.sort(key=sort_key)
+            return
+
+        raise NotImplementedError
+
+    def write(self, target: Path):
+        self.sort()
 
         target.write_bytes(
             json.dumps(self.data, indent=2).encode('utf-8')
@@ -766,15 +773,17 @@ class PerformerToSplitUp(_BacklogExtractor):
 
         super().__init__(gid='1067038397', **kw)
 
+        self.column_name = self.get_column_index('td', text='Performer')
         self.column_main_id = self.get_column_index('td', text=re.compile('Performer Stash ID'))
 
-        self.data: List[str] = []
+        self.data: List[PerformersToSplitItem] = []
         for row in self.data_rows:
             # already processed
             if self.skip_done and self._is_row_done(row):
                 continue
 
             all_cells = row.select('td')
+            name: str = all_cells[self.column_name].text.strip()
             main_id: str = all_cells[self.column_main_id].text.strip()
 
             # useless row
@@ -782,7 +791,12 @@ class PerformerToSplitUp(_BacklogExtractor):
                 continue
 
             if match := re.fullmatch(r'[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}', main_id):
-                self.data.append(match.group(0))
+                item = PerformersToSplitItem(name=name, main_id=match.group(0))
+                self.data.append(item)
+
+    def sort_key(self, item: PerformersToSplitItem):
+        # Performer name, ASC
+        return item['name'].casefold()
 
     def __iter__(self):
         return iter(self.data)
