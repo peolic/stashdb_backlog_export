@@ -82,6 +82,8 @@ def main():
     def with_sorted_toplevel_keys(data: Dict[str, Any]) -> Dict[str, Any]:
         return dict(sorted(data.items(), key=lambda p: p[0]))
 
+    # return export_cache_format(target_path / 'cache.json', scenes, with_sorted_toplevel_keys)
+
     with suppress(FileNotFoundError):
         rmtree(scenes_target)
 
@@ -114,6 +116,16 @@ def make_hashable(o):
         return tuple(sorted(make_hashable(e) for e in o))
 
     return o
+
+
+def export_cache_format(target: Path, scenes, scene_contents_func):
+    from datetime import datetime
+    scene_data = {}
+    for scene_id, scene in scenes.items():
+        scene_data[f'scene/{scene_id}'] = scene_contents_func(scene)
+        scene_data[f'scene/{scene_id}']['lastUpdated'] = datetime.utcnow().isoformat()
+        scene_data[f'scene/{scene_id}']['contentHash'] = make_short_hash(scene)
+    target.write_bytes(json.dumps(scene_data, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
 
 # https://gist.github.com/jannismain/e96666ca4f059c3e5bc28abb711b5c92
@@ -158,8 +170,11 @@ class CompactJSONEncoder(json.JSONEncoder):
                 return "{}"
         elif isinstance(o, float):  # Use scientific notation for floats, where appropiate
             return format(o, "g")
-        elif isinstance(o, str):  # escape newlines
+        elif isinstance(o, str):
+            # escape newlines
             o = o.replace("\n", "\\n")
+            # escape quotes
+            o = o.replace('"', '\\"')
             return f'"{o}"'
         else:
             return json.dumps(o)
