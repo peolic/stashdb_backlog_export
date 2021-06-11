@@ -244,7 +244,7 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
             all_entries = get_all_entries(row.item)
 
             # already processed
-            if self.skip_done and row.done:
+            if self.skip_done and row.done_or_submitted:
                 continue
             # empty row
             if not scene_id:
@@ -300,17 +300,17 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
     def _is_row_done(self, row: bs4.Tag) -> bool:
         """Override base class method because the first column is sometimes being used for 'submitted' status."""
         try:
-            return super()._is_row_done(row, 2)
+            return super()._is_row_done(row, 2) or super()._is_row_done(row, 1)
         except self.CheckboxNotFound:
             return super()._is_row_done(row)
 
     class RowResult(NamedTuple):
         num: int
-        done: bool
+        done_or_submitted: bool
         item: ScenePerformersItem
 
     def _transform_row(self, row: bs4.Tag) -> RowResult:
-        done = self._is_row_done(row)
+        done_or_submitted = self._is_row_done(row)
         row_num = int(row.select_one('th').text)
 
         all_cells = row.select('td')
@@ -341,7 +341,7 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
         if note:
             item['comment'] = note
 
-        return self.RowResult(row_num, done, item)
+        return self.RowResult(row_num, done_or_submitted, item)
 
     def _get_change_entries(self, cells: List[bs4.Tag], row_num: int):
         results: List[PerformerEntry] = []
