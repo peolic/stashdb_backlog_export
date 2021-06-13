@@ -36,16 +36,25 @@ def main():
     scenes: Dict[str, Dict[str, Any]] = {}
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
+    pattern_comment_delimiter = re.compile(r' ; |\n')
 
     for scene_id, fixes in scene_fixes:
         change = scenes.setdefault(scene_id, {})
         for fix in fixes:
-            change[fix['field']] = fix['new_data']
-            if (correction := fix['correction']) and (urls := pattern_find_urls.findall(correction)):
+            field = fix['field']
+            new_data = fix['new_data']
+            correction = fix['correction']
+
+            # "studio_id": <uuid> => "studio": [<uuid>, <studio-name>]
+            if field == 'studio_id':
+                studio_name = pattern_comment_delimiter.split(correction)[0] if correction else None
+                change['studio'] = [new_data, studio_name]
+            else:
+                change[field] = new_data
+
+            if correction and (urls := pattern_find_urls.findall(correction)):
                 comments: List[str] = change.setdefault('comments', [])
                 comments[:] = list(dict.fromkeys(comments + urls))
-
-    pattern_comment_delimiter = re.compile(r' [;\n] ')
 
     for item in scene_performers:
         change = scenes.setdefault(item['scene_id'], {})
