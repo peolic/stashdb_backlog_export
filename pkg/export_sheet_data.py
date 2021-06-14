@@ -15,43 +15,18 @@ from .models import (
     DuplicateScenesItem,
     PerformerEntry,
     PerformerUpdateEntry,
-    PerformersToSplitItem,
+    PerformersToSplitUpItem,
     SceneChangeFieldType,
     SceneChangeItem,
     SceneFixesDict,
     ScenePerformersItem,
 )
-from .utils import format_performer, format_studio, get_all_entries, get_cell_url, parse_stashdb_url
+from .utils import format_performer, format_studio, get_all_entries, get_cell_url, is_uuid, parse_stashdb_url
 
 # Scene-Performers configuration
 # ==============================
 # Skip items completely if at least one if the performers' IDs could not be extracted
 SKIP_NO_ID = True
-
-
-def main_scene_performers():
-    from .paths import path_scene_performers
-    data = ScenePerformers()
-    data.write(path_scene_performers)
-    print(f'Success: {len(data)} scene entries')
-
-def main_scenes_fixes():
-    from .paths import path_scene_fixes
-    data = SceneFixes()
-    data.write(path_scene_fixes)
-    print(f'Success: {len(data)} scene entries')
-
-def main_duplicate_scenes():
-    from .paths import path_duplicate_scenes
-    data = DuplicateScenes()
-    data.write(path_duplicate_scenes)
-    print(f'Success: {len(data)} scene entries')
-
-def main_duplicate_performers():
-    from .paths import path_duplicate_performers
-    data = DuplicatePerformers()
-    data.write(path_duplicate_performers)
-    print(f'Success: {len(data)} performer entries')
 
 
 def first_performer_name(item: ScenePerformersItem, entry_type: Literal['update', 'append', 'remove']) -> str:
@@ -161,9 +136,6 @@ class _DataExtractor:
     def sort(self):
         if sort_key := getattr(self, 'sort_key', None):
             self.data.sort(key=sort_key)
-            return
-
-        raise NotImplementedError
 
     def write(self, target: Path):
         self.sort()
@@ -666,8 +638,7 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
                 continue
 
             # skip anything else
-            match = re.fullmatch(r'[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}', scene_id)
-            if match is None:
+            if not is_uuid(scene_id):
                 continue
 
             # skip completed
@@ -740,8 +711,7 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
                 continue
 
             # skip anything else
-            match = re.fullmatch(r'[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}', p_id)
-            if match is None:
+            if not is_uuid(p_id):
                 continue
 
             # skip completed
@@ -761,7 +731,7 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
         return iter(self.data)
 
 
-class PerformerToSplitUp(_BacklogExtractor):
+class PerformersToSplitUp(_BacklogExtractor):
     def __init__(self, skip_done: bool = True, **kw):
         """
         NOTE: PARTIAL EXTRACTOR
@@ -776,7 +746,7 @@ class PerformerToSplitUp(_BacklogExtractor):
         self.column_name = self.get_column_index('td', text='Performer')
         self.column_main_id = self.get_column_index('td', text=re.compile('Performer Stash ID'))
 
-        self.data: List[PerformersToSplitItem] = []
+        self.data: List[PerformersToSplitUpItem] = []
         for row in self.data_rows:
             # already processed
             if self.skip_done and self._is_row_done(row):
@@ -790,11 +760,13 @@ class PerformerToSplitUp(_BacklogExtractor):
             if not main_id:
                 continue
 
-            if match := re.fullmatch(r'[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}', main_id):
-                item = PerformersToSplitItem(name=name, main_id=match.group(0))
-                self.data.append(item)
+            if not is_uuid(main_id):
+                continue
 
-    def sort_key(self, item: PerformersToSplitItem):
+            item = PerformersToSplitUpItem(name=name, main_id=main_id)
+            self.data.append(item)
+
+    def sort_key(self, item: PerformersToSplitUpItem):
         # Performer name, ASC
         return item['name'].casefold()
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Dict, List, Union
 
-from pkg.export_sheet_data import PerformerToSplitUp, ScenePerformers, SceneFixes
+from pkg.export_sheet_data import PerformersToSplitUp, ScenePerformers, SceneFixes
 
 
 def main():
@@ -26,7 +26,7 @@ def main():
 
     scene_performers = ScenePerformers(skip_no_id=False)
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
-    performers_to_split_up = PerformerToSplitUp(reuse_soup=scene_performers.soup)
+    performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_performers.soup)
 
     scene_performers.sort()
     performers_to_split_up.sort()

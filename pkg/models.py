@@ -61,6 +61,6 @@ class DuplicatePerformersItem(TypedDict):
     duplicates: List[str]
 
 
-class PerformersToSplitItem(TypedDict):
+class PerformersToSplitUpItem(TypedDict):
     name: str
     main_id: str

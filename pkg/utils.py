@@ -6,6 +6,14 @@ from bs4.element import Tag
 
 from .models import AnyPerformerEntry, ScenePerformersItem
 
+_uuid = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+UUID_PATTERN =        re.compile(_uuid)
+STASHDB_UUID_PATTERN = re.compile(r'/([a-z]+)/(' + _uuid + r')')
+
+
+def is_uuid(text: str) -> bool:
+    return UUID_PATTERN.fullmatch(text) is not None
+
 
 def parse_google_redirect_url(url: Optional[str]) -> Optional[str]:
     if not url:
@@ -32,8 +40,6 @@ def get_cell_url(cell: Tag) -> Optional[str]:
     except (AttributeError, KeyError):
         return None
 
-
-STASHDB_UUID_PATTERN = re.compile(r'/([a-z]+)/([0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12})')
 
 def parse_stashdb_url(url: str) -> Tuple[Optional[str], Optional[str]]:
     if match := STASHDB_UUID_PATTERN.search(url):
