@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+import operator
 import re
 from contextlib import suppress
 from pathlib import Path
@@ -27,9 +28,6 @@ def main():
     scene_performers = ScenePerformers(skip_no_id=False)
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
     performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_performers.soup)
-
-    scene_performers.sort()
-    performers_to_split_up.sort()
 
     print('processing information...')
 
@@ -71,16 +69,16 @@ def main():
         return [make_short_hash(entry), *(k for k in sorted(entry.keys()) if k != 'comments')]
 
     # "scene_id": [content_hash, "date", "performers", "title"]
-    scenes_index = dict(zip(
+    scenes_index = dict(sorted(zip(
         scenes.keys(),
         map(get_keys, scenes.values()),
-    ))
+    )))
 
     # "performer_id": "split"
-    performers_index = {
-        item['main_id']: 'split'
+    performers_index = dict(sorted({
+        (item['main_id'], 'split')
         for item in performers_to_split_up
-    }
+    }))
 
     index = dict(scenes=scenes_index, performers=performers_index)
     index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
@@ -89,7 +87,7 @@ def main():
         return f'{uuid[:2]}/{uuid}.json'
 
     def with_sorted_toplevel_keys(data: Dict[str, Any]) -> Dict[str, Any]:
-        return dict(sorted(data.items(), key=lambda p: p[0]))
+        return dict(sorted(data.items(), key=operator.itemgetter(0)))
 
     # return export_cache_format(target_path / 'cache.json', scenes, with_sorted_toplevel_keys)
 
