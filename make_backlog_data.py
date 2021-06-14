@@ -10,7 +10,7 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Dict, List, Union
 
-from pkg.export_sheet_data import PerformersToSplitUp, ScenePerformers, SceneFixes
+from pkg.export_sheet_data import PerformersToSplitUp, SceneFingerprints, ScenePerformers, SceneFixes
 
 
 def main():
@@ -27,6 +27,7 @@ def main():
 
     scene_performers = ScenePerformers(skip_no_id=False)
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
+    scene_fingerprints = SceneFingerprints(skip_no_correct_scene=False, reuse_soup=scene_performers.soup)
     performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_performers.soup)
 
     print('processing information...')
@@ -53,6 +54,10 @@ def main():
             if correction and (urls := pattern_find_urls.findall(correction)):
                 comments: List[str] = change.setdefault('comments', [])
                 comments[:] = list(dict.fromkeys(comments + urls))
+
+    for scene_id, fingerprints in scene_fingerprints:
+        change = scenes.setdefault(scene_id, {})
+        change['fingerprints'] = fingerprints
 
     for item in scene_performers:
         change = scenes.setdefault(item['scene_id'], {})
