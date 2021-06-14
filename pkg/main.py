@@ -25,6 +25,11 @@ def main_export_sheet_data():
         data.write(paths.path_duplicate_performers)
         print(f'Success: {len(data)} performer entries')
 
+    def main_scene_fingerprints():
+        data = export_sheet_data.SceneFingerprints()
+        data.write(paths.path_scene_fingerprints)
+        print(f'Success: {len(data)} scene entries')
+
     def main_performers_to_split_up():
         data = export_sheet_data.PerformersToSplitUp()
         data.write(paths.path_performers_to_split_up)
@@ -48,6 +53,9 @@ def main_export_sheet_data():
 
     subparsers.add_parser(name='dp', help="Duplicate Performers") \
         .set_defaults(main_method=main_duplicate_performers)
+
+    subparsers.add_parser(name='sfp', help="Scene Fingerprints") \
+        .set_defaults(main_method=main_scene_fingerprints)
 
     subparsers.add_parser(name='ps', help="Performers To Split Up") \
         .set_defaults(main_method=main_performers_to_split_up)

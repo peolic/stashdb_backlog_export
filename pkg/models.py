@@ -61,6 +61,14 @@ class DuplicatePerformersItem(TypedDict):
     duplicates: List[str]
 
 
+class SceneFingerprintsItem(TypedDict):
+    algorithm: str
+    hash: str
+    correct_scene_id: Optional[str]
+
+SceneFingerprintsDict = Dict[str, List[SceneFingerprintsItem]]
+
+
 class PerformersToSplitUpItem(TypedDict):
     name: str
     main_id: str

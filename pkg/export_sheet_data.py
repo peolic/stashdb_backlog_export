@@ -18,6 +18,8 @@ from .models import (
     PerformersToSplitUpItem,
     SceneChangeFieldType,
     SceneChangeItem,
+    SceneFingerprintsDict,
+    SceneFingerprintsItem,
     SceneFixesDict,
     ScenePerformersItem,
 )
@@ -729,6 +731,76 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
 
     def __iter__(self):
         return iter(self.data)
+
+
+class SceneFingerprints(_BacklogExtractor):
+    def __init__(self, skip_done: bool = True, skip_no_correct_scene: bool = True, **kw):
+        """
+        Args:
+            skip_done             - Skip rows and/or cells that are marked as done.
+            skip_no_correct_scene - Skip rows that don't provide the correct scene's ID.
+        """
+        self.skip_done = skip_done
+        self.skip_no_correct_scene = skip_no_correct_scene
+
+        super().__init__(gid='357846927', **kw)
+
+        self.column_scene_id = self.get_column_index('td', text=re.compile('Scene ID'))
+        self.column_algorithm = self.get_column_index('td', text=re.compile('Algorithm'))
+        self.column_fingerprint = self.get_column_index('td', text=re.compile('Fingerprint'))
+        self.column_correct_scene_id = self.get_column_index('td', text=re.compile('Correct Scene ID'))
+
+        self.data: SceneFingerprintsDict = {}
+        for row in self.data_rows:
+            row_num = int(row.select_one('th').text)
+
+            # already processed
+            if self.skip_done and self._is_row_done(row):
+                continue
+
+            all_cells = row.select('td')
+            scene_id: str = all_cells[self.column_scene_id].text.strip()
+            algorithm: str = all_cells[self.column_algorithm].text.strip()
+            fp_hash: str = all_cells[self.column_fingerprint].text.strip()
+            correct_scene_id: Optional[str] = all_cells[self.column_correct_scene_id].text.strip() or None
+
+            # useless row
+            if not (scene_id and algorithm and fp_hash):
+                continue
+
+            if self.skip_no_correct_scene and not correct_scene_id:
+                print(f'Row {row_num:<4} | WARNING: Skipped due to missing correct scene ID')
+                continue
+
+            if algorithm not in ('phash', 'oshash', 'md5'):
+                print(f'Row {row_num:<4} | WARNING: Skipped due to invalid algorithm')
+                continue
+
+            if (
+                re.fullmatch(r'^[a-f0-9]+$', fp_hash) is None
+                or algorithm in ('phash', 'oshash') and len(fp_hash) != 16
+                or algorithm == 'md5' and len(fp_hash) != 32
+            ):
+                print(f'Row {row_num:<4} | WARNING: Skipped due to invalid hash')
+                continue
+
+            if not is_uuid(scene_id):
+                print(f'Row {row_num:<4} | WARNING: Skipped due to invalid scene ID')
+                continue
+
+            if correct_scene_id and not is_uuid(correct_scene_id):
+                print(f'Row {row_num:<4} | WARNING: Skipped due to invalid correct scene ID')
+                continue
+
+            item = SceneFingerprintsItem(
+                algorithm=algorithm,
+                hash=fp_hash,
+                correct_scene_id=correct_scene_id,
+            )
+            self.data.setdefault(scene_id, []).append(item)
+
+    def __iter__(self):
+        return iter(self.data.items())
 
 
 class PerformersToSplitUp(_BacklogExtractor):
