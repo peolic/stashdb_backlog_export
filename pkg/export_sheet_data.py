@@ -384,9 +384,9 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
                 p_id = uuid
 
             elif obj is None or uuid is None:
-                # if not self.skip_no_id:
-                #     print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
                 p_id = None
+                if status != 'new':
+                    print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
 
             else:
                 p_id = None
