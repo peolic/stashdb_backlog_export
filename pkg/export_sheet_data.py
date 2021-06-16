@@ -616,21 +616,23 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
             self.data.append(row.item)
 
     class RowResult(NamedTuple):
+        num: int
         done: bool
         item: DuplicateScenesItem
 
     def _transform_row(self, row: bs4.Tag) -> RowResult:
         done = self._is_row_done(row)
+        row_num = int(row.select_one('th').text)
 
         all_cells = row.select('td')
         studio: str = all_cells[self.column_studio].text.strip()
         main_id: str = all_cells[self.column_main_id].text.strip()
-        duplicates: List[str] = self._get_duplicate_scene_ids(all_cells[self.column_main_id:])
+        duplicates: List[str] = self._get_duplicate_scene_ids(all_cells[self.column_main_id + 1:], row_num)
 
-        return self.RowResult(done, { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates })
+        return self.RowResult(row_num, done, { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates })
 
-    def _get_duplicate_scene_ids(self, cells: List[bs4.Tag]) -> List[str]:
-        results = []
+    def _get_duplicate_scene_ids(self, cells: List[bs4.Tag], row_num: int) -> List[str]:
+        results: List[str] = []
 
         for cell in cells:
             scene_id: str = cell.text.strip()
@@ -646,7 +648,11 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
             # skip completed
             if self.is_cell_done(cell):
                 continue
-                print(f'skipped completed {name}')
+                print(f'Row {row_num:<4} | skipped completed {scene_id}')
+
+            if scene_id in results:
+                print(f'Row {row_num:<4} | WARNING: Skipping duplicate scene ID: {scene_id}')
+                continue
 
             results.append(scene_id)
 
@@ -698,7 +704,7 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
 
         name: str = all_cells[self.column_name].text.strip()
         main_id: str = all_cells[self.column_main_id].text.strip()
-        duplicate_ids: List[str] = self._get_duplicate_performer_ids(all_cells[self.column_main_id:], row_num)
+        duplicate_ids: List[str] = self._get_duplicate_performer_ids(all_cells[self.column_main_id + 1:], row_num)
 
         return self.RowResult(row_num, done, { 'name': name, 'main_id': main_id, 'duplicates': duplicate_ids })
 
@@ -719,7 +725,7 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
             # skip completed
             if self.is_cell_done(cell):
                 continue
-                print(f'skipped completed {p_id}')
+                print(f'Row {row_num:<4} | skipped completed {p_id}')
 
             if p_id in results:
                 print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer ID: {p_id}')
