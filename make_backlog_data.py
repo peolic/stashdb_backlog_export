@@ -10,7 +10,7 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Dict, List, Union
 
-from pkg.export_sheet_data import PerformersToSplitUp, SceneFingerprints, ScenePerformers, SceneFixes
+from pkg.export_sheet_data import DuplicatePerformers, PerformersToSplitUp, SceneFingerprints, ScenePerformers, SceneFixes
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     target_path = script_dir / 'backlog_data'
 
     scenes_target = target_path / 'scenes'
-    # performers_target = target_path / 'performers'
+    performers_target = target_path / 'performers'
 
     index_path = target_path / 'index.json'
 
@@ -29,6 +29,7 @@ def main():
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
     scene_fingerprints = SceneFingerprints(skip_no_correct_scene=False, reuse_soup=scene_performers.soup)
     performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_performers.soup)
+    duplicate_performers = DuplicatePerformers(reuse_soup=scene_performers.soup)
 
     print('processing information...')
 
@@ -79,11 +80,27 @@ def main():
         map(get_keys, scenes.values()),
     )))
 
-    # "performer_id": "split"
-    performers_index = dict(sorted({
-        (item['main_id'], 'split')
-        for item in performers_to_split_up
-    }))
+    performers: Dict[str, Dict[str, Any]] = {}
+
+    for p in duplicate_performers:
+        main_id = p['main_id']
+        performer = performers.setdefault(main_id, {})
+        performer['duplicates'] = p['duplicates'][:]
+        for dup in p['duplicates']:
+            dup_performer = performers.setdefault(dup, {})
+            dup_performer['duplicate_of'] = main_id
+
+    # "performer_id": [content_hash, "duplicates", "split"]
+    performers_index = dict(sorted(zip(
+        performers.keys(),
+        map(get_keys, performers.values()),
+    )))
+
+    for item in performers_to_split_up:
+        performer = performers_index.setdefault(item['main_id'], [''])  # empty content hash
+        performer[1:] = sorted(['split'] + performer[1:])
+
+    performers_index = dict(sorted(performers_index.items()))
 
     index = dict(scenes=scenes_index, performers=performers_index)
     index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
@@ -105,8 +122,14 @@ def main():
         scene_data = with_sorted_toplevel_keys(scene)
         scene_path.write_bytes(json.dumps(scene_data, indent=2).encode('utf-8'))
 
-    # with suppress(FileNotFoundError):
-    #     rmtree(performers_target)
+    with suppress(FileNotFoundError):
+        rmtree(performers_target)
+
+    for performer_id, performer in performers.items():
+        performer_path = performers_target / make_object_path(performer_id)
+        performer_path.parent.mkdir(parents=True, exist_ok=True)
+        performer_data = with_sorted_toplevel_keys(performer)
+        performer_path.write_bytes(json.dumps(performer_data, indent=2).encode('utf-8'))
 
     print('done')
 
