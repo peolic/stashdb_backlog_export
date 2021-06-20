@@ -1,7 +1,8 @@
 from typing import Dict, List, Literal, Optional, TypedDict, Union
 
 class _PerformerEntryOptional(TypedDict, total=False):
-    status: Optional[str]
+    status: str
+    status_url: str
     disambiguation: str
 
 class _PerformerEntryCommon(_PerformerEntryOptional, TypedDict):

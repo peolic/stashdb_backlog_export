@@ -402,6 +402,8 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
             entry['disambiguation'] = dsmbg
         if status:
             entry['status'] = status
+        if status in ('new', 'c') and url:
+            entry['status_url'] = url
         return entry, raw_name
 
     def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int):
