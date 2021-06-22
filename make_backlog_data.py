@@ -8,7 +8,7 @@ import re
 from contextlib import suppress
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Dict, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 from pkg.export_sheet_data import DuplicatePerformers, PerformersToSplitUp, SceneFingerprints, ScenePerformers, SceneFixes
 
@@ -111,7 +111,11 @@ def main():
     def with_sorted_toplevel_keys(data: Dict[str, Any]) -> Dict[str, Any]:
         return dict(sorted(data.items(), key=operator.itemgetter(0)))
 
-    # return export_cache_format(target_path / 'cache.json', scenes, with_sorted_toplevel_keys)
+    # return export_cache_format(
+    #     script_dir / 'stashdb_backlog.json',
+    #     dict(scenes=scenes, performers=performers),
+    #     with_sorted_toplevel_keys
+    # )
 
     with suppress(FileNotFoundError):
         rmtree(scenes_target)
@@ -153,14 +157,19 @@ def make_hashable(o):
     return o
 
 
-def export_cache_format(target: Path, scenes, scene_contents_func):
+TAnyDict = Dict[str, Any]
+TCacheData = Dict[str, TAnyDict]
+
+def export_cache_format(target: Path, objects: Dict[str, TCacheData], contents_func: Callable[[TAnyDict], TAnyDict]):
     from datetime import datetime
-    scene_data = {}
-    for scene_id, scene in scenes.items():
-        scene_data[f'scene/{scene_id}'] = scene_contents_func(scene)
-        scene_data[f'scene/{scene_id}']['lastUpdated'] = datetime.utcnow().isoformat()
-        scene_data[f'scene/{scene_id}']['contentHash'] = make_short_hash(scene)
-    target.write_bytes(json.dumps(scene_data, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
+    data: TCacheData = {}
+    for obj, obj_data in objects.items():
+        for obj_id, item in obj_data.items():
+            key = f'{obj[:-1]}/{obj_id}'
+            data[key] = contents_func(item)
+            data[key]['lastUpdated'] = datetime.utcnow().isoformat(timespec='milliseconds') + 'Z'
+            data[key]['contentHash'] = make_short_hash(item)
+    target.write_bytes(json.dumps(data, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
 
 # https://gist.github.com/jannismain/e96666ca4f059c3e5bc28abb711b5c92
