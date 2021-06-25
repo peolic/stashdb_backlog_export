@@ -71,31 +71,26 @@ class _DataExtractor:
 
         _sheet: Optional[bs4.Tag] = self.soup.select_one(f'div[id="{gid}"]')
         if not _sheet:
-            print('ERROR: Sheet not found')
-            return
+            raise Exception('ERROR: Sheet not found')
 
         self.sheet = _sheet
 
         self._all_rows: bs4.ResultSet = self.sheet.select('tbody > tr')
 
         self._base_rows = self._get_base_rows()
-        if not self._base_rows:
-            return
 
         self.data = []
 
-    def _get_base_rows(self) -> Optional[BaseRows]:
+    def _get_base_rows(self) -> BaseRows:
         # <th style="height:3px;" class="freezebar-cell freezebar-horizontal-handle">
         frozen_row_handle: Optional[bs4.Tag] = self.sheet.select_one('.freezebar-horizontal-handle')
         if not frozen_row_handle:
-            print('ERROR: Frozen row handler not found')
-            return
+            raise Exception('ERROR: Frozen row handler not found')
 
         # <tr>
         frozen_row: Optional[bs4.Tag] = frozen_row_handle.parent
         if not frozen_row:
-            print('ERROR: Frozen row not found')
-            return
+            raise Exception('ERROR: Frozen row not found')
 
         row_num = self._all_rows.index(frozen_row)
         # if frozen row is not set (== 0), default to head=0, data=1
@@ -121,6 +116,13 @@ class _DataExtractor:
     @property
     def data_rows(self) -> List[bs4.Tag]:
         return self._all_rows[self._base_rows.data:]
+
+    @staticmethod
+    def get_row_num(row: bs4.Tag) -> int:
+        gutter: Optional[bs4.Tag] = row.select_one('th')
+        if not gutter:
+            raise Exception('Failed to get row number')
+        return int(gutter.text)
 
     def _is_row_done(self, row: bs4.Tag, which: int = 1) -> bool:
         checkboxes = row.select('td use[xlink\\:href$="CheckboxId"]')
@@ -285,7 +287,7 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
 
     def _transform_row(self, row: bs4.Tag) -> RowResult:
         done_or_submitted = self._is_row_done(row)
-        row_num = int(row.select_one('th').text)
+        row_num = self.get_row_num(row)
 
         all_cells = row.select('td')
         remove_cells: List[bs4.Tag] = [c for i, c in enumerate(all_cells) if i in self.columns_remove]
@@ -514,7 +516,7 @@ class SceneFixes(_BacklogExtractor):
 
     def _transform_row(self, row: bs4.Tag) -> RowResult:
         done = self._is_row_done(row)
-        row_num = int(row.select_one('th').text)
+        row_num = self.get_row_num(row)
 
         all_cells = row.select('td')
 
@@ -583,7 +585,7 @@ class SceneFixes(_BacklogExtractor):
     def _transform_new_data(field: SceneChangeFieldType, value: Optional[str]) -> Optional[str]:
         if field == 'duration':
             try:
-                parts = value.split(':')
+                parts = value.split(':')  # type: ignore
             except AttributeError:
                 raise ValueError
 
@@ -624,7 +626,7 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
 
     def _transform_row(self, row: bs4.Tag) -> RowResult:
         done = self._is_row_done(row)
-        row_num = int(row.select_one('th').text)
+        row_num = self.get_row_num(row)
 
         all_cells = row.select('td')
         studio: str = all_cells[self.column_studio].text.strip()
@@ -700,7 +702,7 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
 
     def _transform_row(self, row: bs4.Tag) -> RowResult:
         done = self._is_row_done(row)
-        row_num = int(row.select_one('th').text)
+        row_num = self.get_row_num(row)
 
         all_cells = row.select('td')
 
@@ -760,7 +762,7 @@ class SceneFingerprints(_BacklogExtractor):
 
         self.data: SceneFingerprintsDict = {}
         for row in self.data_rows:
-            row_num = int(row.select_one('th').text)
+            row_num = self.get_row_num(row)
 
             # already processed
             if self.skip_done and self._is_row_done(row):
