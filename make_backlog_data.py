@@ -36,7 +36,7 @@ def main():
     scenes: Dict[str, Dict[str, Any]] = {}
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
-    pattern_comment_delimiter = re.compile(r' ; |\n')
+    pattern_comment_delimiter = re.compile(r' ; | *\n')
 
     for scene_id, fixes in scene_fixes:
         change = scenes.setdefault(scene_id, {})
@@ -52,9 +52,15 @@ def main():
             else:
                 change[field] = new_data
 
-            if correction and (urls := pattern_find_urls.findall(correction)):
-                comments: List[str] = change.setdefault('comments', [])
-                comments[:] = list(dict.fromkeys(comments + urls))
+            if correction:
+                if field in ('date',):
+                    filtered = pattern_comment_delimiter.split(correction)
+                else:
+                    filtered = pattern_find_urls.findall(correction)
+
+                if filtered:
+                    comments: List[str] = change.setdefault('comments', [])
+                    comments[:] = list(dict.fromkeys(comments + filtered))
 
     for scene_id, fingerprints in scene_fingerprints:
         change = scenes.setdefault(scene_id, {})
