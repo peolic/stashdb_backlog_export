@@ -118,7 +118,7 @@ def main():
         return dict(sorted(data.items(), key=operator.itemgetter(0)))
 
     # return export_cache_format(
-    #     script_dir / 'stashdb_backlog.json',
+    #     script_dir / '.stashdb_backlog.json',
     #     dict(scenes=scenes, performers=performers),
     #     with_sorted_toplevel_keys
     # )
