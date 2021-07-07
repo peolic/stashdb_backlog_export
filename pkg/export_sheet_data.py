@@ -584,14 +584,20 @@ class SceneFixes(_BacklogExtractor):
     @staticmethod
     def _transform_new_data(field: SceneChangeFieldType, value: Optional[str]) -> Optional[str]:
         if field == 'duration':
+            if not value:
+                raise ValueError
             try:
-                parts = value.split(':')  # type: ignore
+                parts = value.split(':')
             except AttributeError:
                 raise ValueError
 
             parts[0:0] = ('0',) * (3 - len(parts))
             (hours, minutes, seconds) = [int(i) for i in parts]
             return str(hours * 3600 + minutes * 60 + seconds)
+
+        if field == 'studio_id':
+            if not (value and is_uuid(value)):
+                raise ValueError
 
         return value
 
