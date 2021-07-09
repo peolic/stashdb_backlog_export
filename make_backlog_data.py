@@ -10,7 +10,14 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Callable, Dict, List, Union
 
-from pkg.export_sheet_data import DuplicatePerformers, PerformersToSplitUp, SceneFingerprints, ScenePerformers, SceneFixes
+from pkg.export_sheet_data import (
+    DuplicatePerformers,
+    DuplicateScenes,
+    PerformersToSplitUp,
+    SceneFingerprints,
+    ScenePerformers,
+    SceneFixes,
+)
 
 
 def main():
@@ -28,6 +35,7 @@ def main():
     scene_performers = ScenePerformers(skip_no_id=False)
     scene_fixes = SceneFixes(reuse_soup=scene_performers.soup)
     scene_fingerprints = SceneFingerprints(skip_no_correct_scene=False, reuse_soup=scene_performers.soup)
+    duplicate_scenes = DuplicateScenes(reuse_soup=scene_performers.soup)
     performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_performers.soup)
     duplicate_performers = DuplicatePerformers(reuse_soup=scene_performers.soup)
 
@@ -65,6 +73,14 @@ def main():
     for scene_id, fingerprints in scene_fingerprints:
         change = scenes.setdefault(scene_id, {})
         change['fingerprints'] = fingerprints
+
+    for ds_item in duplicate_scenes:
+        main_id = ds_item['main_id']
+        scene = scenes.setdefault(main_id, {})
+        scene['duplicates'] = ds_item['duplicates'][:]
+        for dup in ds_item['duplicates']:
+            dup_scene = scenes.setdefault(dup, {})
+            dup_scene['duplicate_of'] = main_id
 
     for item in scene_performers:
         change = scenes.setdefault(item['scene_id'], {})
