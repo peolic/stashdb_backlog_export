@@ -50,7 +50,10 @@ class SceneChangeItem(TypedDict):
 SceneFixesDict = Dict[str, List[SceneChangeItem]]
 
 
-class DuplicateScenesItem(TypedDict):
+class _DuplicateScenesItemOptional(TypedDict, total=False):
+    category: str
+
+class DuplicateScenesItem(_DuplicateScenesItemOptional, TypedDict):
     studio: str
     main_id: str
     duplicates: List[str]

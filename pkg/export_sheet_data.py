@@ -609,8 +609,9 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
     def __init__(self, **kw):
         super().__init__(gid='1879471751', **kw)
 
-        self.column_studio  = self.get_column_index('td', text=re.compile('Studio'))
-        self.column_main_id = self.get_column_index('td', text=re.compile('Main ID'))
+        self.column_category = self.get_column_index('td', text=re.compile('Category'))
+        self.column_studio   = self.get_column_index('td', text=re.compile('Studio'))
+        self.column_main_id  = self.get_column_index('td', text=re.compile('Main ID'))
 
         self.data: List[DuplicateScenesItem] = []
         for row in self.data_rows:
@@ -635,11 +636,17 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
         row_num = self.get_row_num(row)
 
         all_cells = row.select('td')
+        category: str = all_cells[self.column_category].text.strip()
         studio: str = all_cells[self.column_studio].text.strip()
         main_id: str = all_cells[self.column_main_id].text.strip()
         duplicates: List[str] = self._get_duplicate_scene_ids(all_cells[self.column_main_id + 1:], row_num)
 
-        return self.RowResult(row_num, done, { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates })
+        item: DuplicateScenesItem = { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates }
+
+        if category and category != 'Exact duplicate':
+            item['category'] = category
+
+        return self.RowResult(row_num, done, item)
 
     def _get_duplicate_scene_ids(self, cells: List[bs4.Tag], row_num: int) -> List[str]:
         results: List[str] = []
