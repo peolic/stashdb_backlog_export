@@ -212,7 +212,7 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
 
         self._parent_studio_pattern = re.compile(r'^(?P<studio>.+?) \[(?P<parent_studio>.+)\]$')
 
-        self.data: List[ScenePerformersItem] = []
+        data: Dict[str, ScenePerformersItem] = {}
         for row in self.data_rows:
             row = self._transform_row(row)
 
@@ -271,7 +271,31 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
                 )
                 continue
 
-            self.data.append(row.item)
+            if scene_id in data:
+                data[scene_id]['remove'].extend(row.item['remove'])
+
+                data[scene_id]['append'].extend(row.item['append'])
+
+                this_update = row.item.get('update')
+                if this_update:
+                    previous_update = data[scene_id].get('update')
+                    if previous_update:
+                        previous_update.extend(this_update)
+                    else:
+                        data[scene_id]['update'] = this_update
+
+                this_comment = row.item.get('comment')
+                if this_comment:
+                    previous_comment = data[scene_id].get('comment')
+                    if previous_comment:
+                        data[scene_id]['comment'] = previous_comment + '\n' + this_comment
+                    else:
+                        data[scene_id]['comment'] = this_comment
+
+            else:
+                data[scene_id] = row.item
+
+        self.data = list(data.values())
 
     def _is_row_done(self, row: bs4.Tag) -> bool:
         """Override base class method because the first column is sometimes being used for 'submitted' status."""
