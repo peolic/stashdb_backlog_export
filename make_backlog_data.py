@@ -77,7 +77,11 @@ def main():
     for ds_item in duplicate_scenes:
         main_id = ds_item['main_id']
         scene = scenes.setdefault(main_id, {})
-        scene['duplicates'] = ds_item['duplicates'][:]
+        scene['duplicates'] = (
+            list(dict.fromkeys(scene['duplicates'] + ds_item['duplicates']))
+            if 'duplicates' in scene else
+            ds_item['duplicates'][:]
+        )
         for dup in ds_item['duplicates']:
             dup_scene = scenes.setdefault(dup, {})
             dup_scene['duplicate_of'] = main_id

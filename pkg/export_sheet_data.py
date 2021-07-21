@@ -276,18 +276,14 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
 
                 data[scene_id]['append'].extend(row.item['append'])
 
-                this_update = row.item.get('update')
-                if this_update:
-                    previous_update = data[scene_id].get('update')
-                    if previous_update:
+                if this_update := row.item.get('update'):
+                    if previous_update := data[scene_id].get('update'):
                         previous_update.extend(this_update)
                     else:
                         data[scene_id]['update'] = this_update
 
-                this_comment = row.item.get('comment')
-                if this_comment:
-                    previous_comment = data[scene_id].get('comment')
-                    if previous_comment:
+                if this_comment := row.item.get('comment'):
+                    if previous_comment := data[scene_id].get('comment'):
                         data[scene_id]['comment'] = previous_comment + '\n' + this_comment
                     else:
                         data[scene_id]['comment'] = this_comment
