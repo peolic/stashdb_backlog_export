@@ -661,6 +661,10 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
         main_id: str = all_cells[self.column_main_id].text.strip()
         duplicates: List[str] = self._get_duplicate_scene_ids(all_cells[self.column_main_id + 1:], row_num)
 
+        if not is_uuid(main_id):
+            print(f"Row {row_num:<4} | WARNING: Invalid main scene UUID: '{main_id}'")
+            main_id = None
+
         item: DuplicateScenesItem = { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates }
 
         if category and category != 'Exact duplicate':
@@ -742,6 +746,10 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
         name: str = all_cells[self.column_name].text.strip()
         main_id: str = all_cells[self.column_main_id].text.strip()
         duplicate_ids: List[str] = self._get_duplicate_performer_ids(all_cells[self.column_main_id + 1:], row_num)
+
+        if not is_uuid(main_id):
+            print(f"Row {row_num:<4} | WARNING: Invalid main performer UUID: '{main_id}'")
+            main_id = None
 
         return self.RowResult(row_num, done, { 'name': name, 'main_id': main_id, 'duplicates': duplicate_ids })
 
