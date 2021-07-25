@@ -661,7 +661,7 @@ class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
         main_id: str = all_cells[self.column_main_id].text.strip()
         duplicates: List[str] = self._get_duplicate_scene_ids(all_cells[self.column_main_id + 1:], row_num)
 
-        if not is_uuid(main_id):
+        if main_id and not is_uuid(main_id):
             print(f"Row {row_num:<4} | WARNING: Invalid main scene UUID: '{main_id}'")
             main_id = None
 
@@ -747,7 +747,7 @@ class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
         main_id: str = all_cells[self.column_main_id].text.strip()
         duplicate_ids: List[str] = self._get_duplicate_performer_ids(all_cells[self.column_main_id + 1:], row_num)
 
-        if not is_uuid(main_id):
+        if main_id and not is_uuid(main_id):
             print(f"Row {row_num:<4} | WARNING: Invalid main performer UUID: '{main_id}'")
             main_id = None
 
