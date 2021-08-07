@@ -5,6 +5,7 @@ import hashlib
 import json
 import operator
 import re
+import sys
 from contextlib import suppress
 from pathlib import Path
 from shutil import rmtree
@@ -21,6 +22,8 @@ from pkg.export_sheet_data import (
 
 
 def main():
+    AS_CACHE = 'cache' in sys.argv[1:]
+
     script_dir = Path(__file__).parent
 
     target_path = script_dir / 'backlog_data'
@@ -28,7 +31,10 @@ def main():
     scenes_target = target_path / 'scenes'
     performers_target = target_path / 'performers'
 
-    index_path = target_path / 'index.json'
+    if AS_CACHE:
+        index_path = script_dir / '.stashdb_backlog_index.json'
+    else:
+        index_path = target_path / 'index.json'
 
     print('fetching information...')
 
@@ -137,11 +143,12 @@ def main():
     def with_sorted_toplevel_keys(data: Dict[str, Any]) -> Dict[str, Any]:
         return dict(sorted(data.items(), key=operator.itemgetter(0)))
 
-    # return export_cache_format(
-    #     script_dir / '.stashdb_backlog.json',
-    #     dict(scenes=scenes, performers=performers),
-    #     with_sorted_toplevel_keys
-    # )
+    if AS_CACHE:
+        return export_cache_format(
+            script_dir / '.stashdb_backlog.json',
+            dict(scenes=scenes, performers=performers),
+            with_sorted_toplevel_keys,
+        )
 
     with suppress(FileNotFoundError):
         rmtree(scenes_target)
