@@ -7,6 +7,7 @@ import operator
 import re
 import sys
 from contextlib import suppress
+from datetime import datetime
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Callable, Dict, List, Union
@@ -135,6 +136,9 @@ def main():
     performers_index = dict(sorted(performers_index.items()))
 
     index = dict(scenes=scenes_index, performers=performers_index)
+    if AS_CACHE:
+        index['lastChecked'] = make_timestamp()  # type: ignore
+        index['lastUpdated'] = make_timestamp()  # type: ignore
     index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
     def make_object_path(uuid: str) -> str:
@@ -190,17 +194,20 @@ def make_hashable(o):
     return o
 
 
+def make_timestamp() -> str:
+    return datetime.utcnow().isoformat(timespec='milliseconds') + 'Z'
+
+
 TAnyDict = Dict[str, Any]
 TCacheData = Dict[str, TAnyDict]
 
 def export_cache_format(target: Path, objects: Dict[str, TCacheData], contents_func: Callable[[TAnyDict], TAnyDict]):
-    from datetime import datetime
     data: TCacheData = {}
     for obj, obj_data in objects.items():
         for obj_id, item in obj_data.items():
             key = f'{obj[:-1]}/{obj_id}'
             data[key] = contents_func(item)
-            data[key]['lastUpdated'] = datetime.utcnow().isoformat(timespec='milliseconds') + 'Z'
+            data[key]['lastUpdated'] = make_timestamp()
             data[key]['contentHash'] = make_short_hash(item)
     target.write_bytes(json.dumps(data, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
