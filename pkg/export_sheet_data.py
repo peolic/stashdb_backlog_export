@@ -125,7 +125,7 @@ class _DataExtractor:
         return int(gutter.text)
 
     def _is_row_done(self, row: bs4.Tag, which: int = 1) -> bool:
-        checkboxes = row.select('td use[xlink\\:href$="CheckboxId"]')
+        checkboxes = row.select('td use[href$="CheckboxId"]') or row.select('td use[xlink\\:href$="CheckboxId"]')
         if not checkboxes:
             raise self.CheckboxNotFound('No checkboxes found!')
 
@@ -135,7 +135,12 @@ class _DataExtractor:
             es = 'es' if (count := len(checkboxes)) > 1 else ''
             raise self.CheckboxNotFound(f'Only {count} checkbox{es} found, cannot get checkbox #{which}!')
 
-        return checkbox.attrs['xlink:href'] == '#checkedCheckboxId'
+        try:
+            href = checkbox.attrs['href']
+        except KeyError:
+            href = checkbox.attrs['xlink:href']
+
+        return href == '#checkedCheckboxId'
 
     def sort(self):
         if sort_key := getattr(self, 'sort_key', None):
