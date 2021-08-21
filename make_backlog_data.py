@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import operator
+import os
 import re
 import sys
 from contextlib import suppress
@@ -22,21 +23,7 @@ from pkg.export_sheet_data import (
 )
 
 
-def main():
-    AS_CACHE = 'cache' in sys.argv[1:]
-
-    script_dir = Path(__file__).parent
-
-    target_path = script_dir / 'backlog_data'
-
-    scenes_target = target_path / 'scenes'
-    performers_target = target_path / 'performers'
-
-    if AS_CACHE:
-        index_path = script_dir / '.stashdb_backlog_index.json'
-    else:
-        index_path = target_path / 'index.json'
-
+def get_data():
     print('fetching information...')
 
     scene_performers = ScenePerformers(skip_no_id=False)
@@ -135,11 +122,31 @@ def main():
 
     performers_index = dict(sorted(performers_index.items()))
 
-    index = dict(scenes=scenes_index, performers=performers_index)
-    if AS_CACHE:
+    index: Dict[str, Dict[str, List[str]]] = dict(scenes=scenes_index, performers=performers_index)
+
+    return index, scenes, performers
+
+
+def main():
+    script_dir = Path(__file__).parent
+
+    target_path = script_dir / 'backlog_data'
+    index_path = target_path / 'index.json'
+    scenes_target = target_path / 'scenes'
+    performers_target = target_path / 'performers'
+
+    index, scenes, performers = get_data()
+
+    CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
+    CACHE_ONLY = 'cache' in sys.argv[1:]
+
+    if not CACHE_ONLY:
+        index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
+    if CI or CACHE_ONLY:
         index['lastChecked'] = make_timestamp()  # type: ignore
         index['lastUpdated'] = make_timestamp()  # type: ignore
-    index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
+        (script_dir / '.stashdb_backlog_index.json') \
+            .write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
     def make_object_path(uuid: str) -> str:
         return f'{uuid[:2]}/{uuid}.json'
@@ -147,12 +154,14 @@ def main():
     def with_sorted_toplevel_keys(data: Dict[str, Any]) -> Dict[str, Any]:
         return dict(sorted(data.items(), key=operator.itemgetter(0)))
 
-    if AS_CACHE:
-        return export_cache_format(
+    if CI or CACHE_ONLY:
+        export_cache_format(
             script_dir / '.stashdb_backlog.json',
             dict(scenes=scenes, performers=performers),
             with_sorted_toplevel_keys,
         )
+        if CACHE_ONLY:
+            return
 
     with suppress(FileNotFoundError):
         rmtree(scenes_target)
