@@ -500,15 +500,12 @@ class ScenePerformers(_BacklogExtractor, _DoneClassesMixin):
 
 
 class SceneFixes(_BacklogExtractor):
-    def __init__(self, skip_done: bool = True, skip_manual: bool = True, **kw):
+    def __init__(self, skip_done: bool = True, **kw):
         """
         Args:
             skip_done   - Skip rows that are marked as done.
-            skip_manual - Skip rows that must be applied manually because they
-                            don't provide a new data value for the field.
         """
         self.skip_done = skip_done
-        self.skip_no_new_data = skip_manual
 
         super().__init__(gid='1419170166', **kw)
 
@@ -527,8 +524,8 @@ class SceneFixes(_BacklogExtractor):
             # empty row or error
             if not row.scene_id or not row.change:
                 continue
-            # no new data
-            if self.skip_no_new_data and not row.change['new_data']:
+            # invalid scene id
+            if not is_uuid(row.scene_id):
                 continue
 
             self.data.setdefault(row.scene_id, []).append(row.change)
@@ -573,6 +570,10 @@ class SceneFixes(_BacklogExtractor):
 
         try:
             processed_new_data = self._transform_new_data(normalized_field, new_data)
+        except SceneFixes.ValueWarning:
+            processed_new_data = None
+            print(f'Row {row_num:<4} | WARNING: '
+                  f'Value {new_data!r} for field {field!r} replaced with: {processed_new_data!r}.')
         except ValueError:
             print(f'Row {row_num:<4} | ERROR: Value {new_data!r} for field {field!r} is invalid.')
             return self.RowResult(row_num, done, scene_id, None)
@@ -621,6 +622,8 @@ class SceneFixes(_BacklogExtractor):
             return str(hours * 3600 + minutes * 60 + seconds)
 
         if field == 'studio_id':
+            if value == 'missing':
+                raise SceneFixes.ValueWarning
             if not (value and is_uuid(value)):
                 raise ValueError
 
@@ -628,6 +631,9 @@ class SceneFixes(_BacklogExtractor):
 
     def __iter__(self):
         return iter(self.data.items())
+
+    class ValueWarning(Exception):
+        ...
 
 
 class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
