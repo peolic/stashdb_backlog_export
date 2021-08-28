@@ -8,7 +8,7 @@ import os
 import re
 import sys
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Callable, Dict, List, Union
@@ -144,7 +144,7 @@ def main():
         index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
     if CI or CACHE_ONLY:
         index['lastChecked'] = make_timestamp()  # type: ignore
-        index['lastUpdated'] = make_timestamp()  # type: ignore
+        index['lastUpdated'] = make_timestamp(10)  # type: ignore
         (script_dir / '.stashdb_backlog_index.json') \
             .write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
@@ -203,8 +203,11 @@ def make_hashable(o):
     return o
 
 
-def make_timestamp() -> str:
-    return datetime.utcnow().isoformat(timespec='milliseconds') + 'Z'
+def make_timestamp(add_seconds: int = 0) -> str:
+    dt = datetime.utcnow()
+    if add_seconds:
+        dt += timedelta(seconds=add_seconds)
+    return dt.isoformat(timespec='milliseconds') + 'Z'
 
 
 TAnyDict = Dict[str, Any]
@@ -216,7 +219,7 @@ def export_cache_format(target: Path, objects: Dict[str, TCacheData], contents_f
         for obj_id, item in obj_data.items():
             key = f'{obj[:-1]}/{obj_id}'
             data[key] = contents_func(item)
-            data[key]['lastUpdated'] = make_timestamp()
+            data[key]['lastUpdated'] = make_timestamp(10)
             data[key]['contentHash'] = make_short_hash(item)
     target.write_bytes(json.dumps(data, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
