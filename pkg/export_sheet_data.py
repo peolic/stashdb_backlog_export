@@ -14,8 +14,8 @@ from .models import (
     DuplicatePerformersItem,
     DuplicateScenesItem,
     PerformerEntry,
-    PerformerUpdateEntry,
     PerformersToSplitUpItem,
+    PerformerUpdateEntry,
     SceneChangeFieldType,
     SceneChangeItem,
     SceneFingerprintsDict,
@@ -23,26 +23,21 @@ from .models import (
     SceneFixesDict,
     ScenePerformersItem,
 )
-from .utils import format_performer, format_studio, get_all_entries, get_cell_url, is_uuid, parse_stashdb_url
+from .utils import (
+    first_performer_name,
+    format_performer,
+    format_studio,
+    get_all_entries,
+    get_cell_url,
+    get_multiline_text,
+    is_uuid,
+    parse_stashdb_url
+)
 
 # Scene-Performers configuration
 # ==============================
 # Skip items completely if at least one if the performers' IDs could not be extracted
 SKIP_NO_ID = True
-
-
-def first_performer_name(item: ScenePerformersItem, entry_type: Literal['update', 'append', 'remove']) -> str:
-    try:
-        entries = item.get(entry_type, [])
-        return entries[0]['name']
-    except IndexError:
-        return ''
-
-
-def get_multiline_text(cell: bs4.Tag, **get_text_kwargs) -> str:
-    for br in cell.find_all('br'):
-        br.replace_with('\n')  # type: ignore
-    return cell.get_text(**get_text_kwargs)
 
 
 class _DataExtractor:
