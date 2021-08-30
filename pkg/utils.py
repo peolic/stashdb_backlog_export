@@ -7,7 +7,7 @@ from bs4.element import Tag
 from .models import AnyPerformerEntry, ScenePerformersItem
 
 _uuid = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-UUID_PATTERN =        re.compile(_uuid)
+UUID_PATTERN = re.compile(_uuid)
 STASHDB_UUID_PATTERN = re.compile(r'/([a-z]+)/(' + _uuid + r')')
 
 
@@ -35,7 +35,7 @@ def parse_google_redirect_url(url: Optional[str]) -> Optional[str]:
 def get_cell_url(cell: Tag) -> Optional[str]:
     try:
         return parse_google_redirect_url(
-            cell.select_one('a').attrs['href']
+            cell.select_one('a').attrs['href']  # type: ignore
         )
     except (AttributeError, KeyError):
         return None

@@ -33,18 +33,15 @@ SKIP_NO_ID = True
 
 def first_performer_name(item: ScenePerformersItem, entry_type: Literal['update', 'append', 'remove']) -> str:
     try:
-        return item[entry_type][0]['name']
+        entries = item.get(entry_type, [])
+        return entries[0]['name']
     except IndexError:
         return ''
-    except KeyError:
-        if entry_type == 'update':
-            return ''
-        raise
 
 
 def get_multiline_text(cell: bs4.Tag, **get_text_kwargs) -> str:
     for br in cell.find_all('br'):
-        br.replace_with('\n')
+        br.replace_with('\n')  # type: ignore
     return cell.get_text(**get_text_kwargs)
 
 
