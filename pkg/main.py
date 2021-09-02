@@ -28,7 +28,7 @@ def main_export_sheet_data():
         print(f'Success: {len(data)} performer entries')
 
     def main_scene_fingerprints():
-        data = export_sheet_data.SceneFingerprints()
+        data = api.scene_fingerprints()
         data.write(paths.path_scene_fingerprints)
         print(f'Success: {len(data)} scene entries')
 

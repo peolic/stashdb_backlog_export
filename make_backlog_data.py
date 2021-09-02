@@ -15,7 +15,6 @@ from typing import Any, Callable, Dict, List, Union
 
 from pkg.export_sheet_data import (
     PerformersToSplitUp,
-    SceneFingerprints,
 )
 from pkg.extract import BacklogExtractor
 from pkg.utils import get_google_api_key
@@ -28,9 +27,9 @@ def get_data():
 
     scene_performers = api.scene_performers(skip_no_id=False)
     scene_fixes = api.scene_fixes()
-    scene_fingerprints = SceneFingerprints(skip_no_correct_scene=False)
+    scene_fingerprints = api.scene_fingerprints(skip_no_correct_scene=False)
     duplicate_scenes = api.duplicate_scenes()
-    performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_fingerprints.soup)
+    performers_to_split_up = PerformersToSplitUp()
     duplicate_performers = api.duplicate_performers()
 
     print('processing information...')

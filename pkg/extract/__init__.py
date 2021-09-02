@@ -73,3 +73,17 @@ class BacklogExtractor:
             sheet=sheet,
             skip_done=skip_done,
         )
+
+    def scene_fingerprints(self, skip_done: bool = True, skip_no_correct_scene: bool = True):
+        """
+        Args:
+            skip_done             - Skip rows and/or cells that are marked as done.
+            skip_no_correct_scene - Skip rows that don't provide the correct scene's ID.
+        """
+        from .scene_fingerprints import SceneFingerprints
+        sheet = self.interface.get_sheet(self.SHEET_WHITELIST['scene_fingerprints'])
+        return SceneFingerprints(
+            sheet=sheet,
+            skip_done=skip_done,
+            skip_no_correct_scene=skip_no_correct_scene,
+        )
