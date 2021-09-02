@@ -2,11 +2,10 @@
 import json
 import re
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Set, Union
+from typing import List, NamedTuple, Optional, Union
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
-import cssutils   # pip install cssutils
 import requests   # pip install requests
 
 from .models import (
@@ -130,122 +129,10 @@ class _DataExtractor:
         return len(self.data)
 
 
-class _DoneClassesMixin:
-
-    def is_cell_done(self, cell: bs4.Tag) -> bool:
-        if not hasattr(self, '_done_classes'):
-            self._done_classes = self._get_done_classes()
-
-        classes: Optional[List[str]] = cell.attrs.get('class')
-        if classes:
-            return any(c in self._done_classes for c in classes)
-        return False
-
-    def _get_done_classes(self):
-        """Find the class names that are strike/line-through (partially completed entries)."""
-        classes: Set[str] = set()
-
-        soup: bs4.BeautifulSoup = getattr(self, 'soup')
-        style: Optional[bs4.Tag] = soup.select_one('head > style')
-        if style is None:
-            print('WARNING: Unable to determine partially completed entries')
-            return classes
-
-        stylesheet = cssutils.parseString(style.decode_contents(), validate=False)
-
-        for rule in stylesheet:
-            if rule.type == rule.STYLE_RULE and rule.style.textDecoration == 'line-through':
-                selector: str = rule.selectorText
-                classes.update(c.lstrip('.') for c in selector.split(' ') if c.startswith('.s'))
-
-        return classes
-
-
 class _BacklogExtractor(_DataExtractor):
     def __init__(self, gid: str, **kw):
         doc_id = '1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ'
         super().__init__(doc_id=doc_id, gid=gid, **kw)
-
-
-class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
-    def __init__(self, skip_done: bool = True, **kw):
-        """
-        Args:
-            skip_done - Skip rows and/or cells that are marked as done.
-        """
-        self.skip_done = skip_done
-
-        super().__init__(gid='0', **kw)
-
-        self.column_name   = self.get_column_index('td', text=re.compile('Performer'))
-        self.column_main_id = self.get_column_index('td', text=re.compile('Main ID'))
-
-        self.data: List[DuplicatePerformersItem] = []
-        for row in self.data_rows:
-            row = self._transform_row(row)
-
-            # already processed
-            if self.skip_done and row.done:
-                continue
-            # empty row
-            if not row.item['main_id']:
-                continue
-            # no duplicates listed
-            if not row.item['duplicates']:
-                continue
-
-            self.data.append(row.item)
-
-    class RowResult(NamedTuple):
-        num: int
-        done: bool
-        item: DuplicatePerformersItem
-
-    def _transform_row(self, row: bs4.Tag) -> RowResult:
-        done = self._is_row_done(row)
-        row_num = self.get_row_num(row)
-
-        all_cells = row.select('td')
-
-        name: str = all_cells[self.column_name].text.strip()
-        main_id: str = all_cells[self.column_main_id].text.strip()
-        duplicate_ids: List[str] = self._get_duplicate_performer_ids(all_cells[self.column_main_id + 1:], row_num)
-
-        if main_id and not is_uuid(main_id):
-            print(f"Row {row_num:<4} | WARNING: Invalid main performer UUID: '{main_id}'")
-            main_id = None
-
-        return self.RowResult(row_num, done, { 'name': name, 'main_id': main_id, 'duplicates': duplicate_ids })
-
-    def _get_duplicate_performer_ids(self, cells: List[bs4.Tag], row_num: int):
-        results: List[str] = []
-
-        for cell in cells:
-            p_id: str = cell.text.strip()
-
-            # skip empty
-            if not p_id:
-                continue
-
-            # skip anything else
-            if not is_uuid(p_id):
-                continue
-
-            # skip completed
-            if self.is_cell_done(cell):
-                continue
-                print(f'Row {row_num:<4} | skipped completed {p_id}')
-
-            if p_id in results:
-                print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer ID: {p_id}')
-                continue
-
-            results.append(p_id)
-
-        return results
-
-    def __iter__(self):
-        return iter(self.data)
 
 
 class SceneFingerprints(_BacklogExtractor):

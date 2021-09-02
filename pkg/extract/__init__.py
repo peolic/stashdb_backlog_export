@@ -61,3 +61,15 @@ class BacklogExtractor:
         return DuplicateScenes(
             sheet=sheet,
         )
+
+    def duplicate_performers(self, skip_done: bool = True):
+        """
+        Args:
+            skip_done - Skip rows and/or cells that are marked as done.
+        """
+        from .duplicate_performers import DuplicatePerformers
+        sheet = self.interface.get_sheet(self.SHEET_WHITELIST['duplicate_performers'])
+        return DuplicatePerformers(
+            sheet=sheet,
+            skip_done=skip_done,
+        )

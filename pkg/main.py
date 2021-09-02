@@ -23,7 +23,7 @@ def main_export_sheet_data():
         print(f'Success: {len(data)} scene entries')
 
     def main_duplicate_performers():
-        data = export_sheet_data.DuplicatePerformers()
+        data = api.duplicate_performers()
         data.write(paths.path_duplicate_performers)
         print(f'Success: {len(data)} performer entries')
 
