@@ -13,9 +13,6 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Callable, Dict, List, Union
 
-from pkg.export_sheet_data import (
-    PerformersToSplitUp,
-)
 from pkg.extract import BacklogExtractor
 from pkg.utils import get_google_api_key
 
@@ -29,7 +26,7 @@ def get_data():
     scene_fixes = api.scene_fixes()
     scene_fingerprints = api.scene_fingerprints(skip_no_correct_scene=False)
     duplicate_scenes = api.duplicate_scenes()
-    performers_to_split_up = PerformersToSplitUp()
+    performers_to_split_up = api.performers_to_split_up()
     duplicate_performers = api.duplicate_performers()
 
     print('processing information...')

@@ -5,7 +5,7 @@ from .utils import get_google_api_key
 
 
 def main_export_sheet_data():
-    from . import export_sheet_data, extract, paths
+    from . import extract, paths
 
     def main_scene_performers(**kwargs):
         data = api.scene_performers(**kwargs)
@@ -33,7 +33,7 @@ def main_export_sheet_data():
         print(f'Success: {len(data)} scene entries')
 
     def main_performers_to_split_up():
-        data = export_sheet_data.PerformersToSplitUp()
+        data = api.performers_to_split_up()
         data.write(paths.path_performers_to_split_up)
         print(f'Success: {len(data)} performer entries')
 

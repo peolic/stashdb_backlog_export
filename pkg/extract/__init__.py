@@ -87,3 +87,17 @@ class BacklogExtractor:
             skip_done=skip_done,
             skip_no_correct_scene=skip_no_correct_scene,
         )
+
+    def performers_to_split_up(self, skip_done: bool = True):
+        """
+        NOTE: PARTIAL EXTRACTOR
+
+        Args:
+            skip_done - Skip rows and/or cells that are marked as done.
+        """
+        from .performers_to_split_up import PerformersToSplitUp
+        sheet = self.interface.get_sheet(self.SHEET_WHITELIST['performers_to_split_up'])
+        return PerformersToSplitUp(
+            sheet=sheet,
+            skip_done=skip_done,
+        )
