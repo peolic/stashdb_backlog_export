@@ -1,10 +1,14 @@
+import os
 import re
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Literal, Optional, Tuple
 from urllib.parse import parse_qsl, urlparse
 
 from bs4.element import Tag
 
 from .models import AnyPerformerEntry, ScenePerformersItem
+
+script_dir = Path(__file__).parent
 
 _uuid = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 UUID_PATTERN = re.compile(_uuid)
@@ -41,11 +45,25 @@ def get_cell_url(cell: Tag) -> Optional[str]:
         return None
 
 
+def get_multiline_text(cell: Tag, **get_text_kwargs) -> str:
+    for br in cell.find_all('br'):
+        br.replace_with('\n')  # type: ignore
+    return cell.get_text(**get_text_kwargs)
+
+
 def parse_stashdb_url(url: str) -> Tuple[Optional[str], Optional[str]]:
     if match := STASHDB_UUID_PATTERN.search(url):
         return match.group(1), match.group(2)
 
     return None, None
+
+
+def first_performer_name(item: ScenePerformersItem, entry_type: Literal['update', 'append', 'remove']) -> str:
+    try:
+        entries = item.get(entry_type, [])
+        return entries[0]['name']
+    except IndexError:
+        return ''
 
 
 def get_all_entries(item: ScenePerformersItem) -> List[AnyPerformerEntry]:
@@ -85,3 +103,23 @@ def format_studio(item: ScenePerformersItem) -> Optional[str]:
         return f'{studio} [{parent_studio}]'
 
     return studio
+
+
+def get_env() -> Dict[str, str]:
+    env: Dict[str, str] = {}
+    try:
+        dotenv = Path(script_dir / '../.env').read_text()
+    except FileNotFoundError:
+        return env
+
+    for line in dotenv.splitlines():
+        if not line.startswith('#'):
+            key, value = line.split('=')
+            env[key] = value
+    return env
+
+def get_google_api_key() -> Optional[str]:
+    if api_key := os.environ.get('GOOGLE_API_KEY'):
+        return api_key
+
+    return get_env().get('GOOGLE_API_KEY')

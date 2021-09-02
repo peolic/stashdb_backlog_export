@@ -2,5 +2,6 @@
 __pycache__/
 /.venv/
 
+/.env
 /backlog_data/
 /*.json
