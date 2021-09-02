@@ -15,7 +15,6 @@ from typing import Any, Callable, Dict, List, Union
 
 from pkg.export_sheet_data import (
     DuplicatePerformers,
-    DuplicateScenes,
     PerformersToSplitUp,
     SceneFingerprints,
 )
@@ -31,7 +30,7 @@ def get_data():
     scene_performers = api.scene_performers(skip_no_id=False)
     scene_fixes = api.scene_fixes()
     scene_fingerprints = SceneFingerprints(skip_no_correct_scene=False)
-    duplicate_scenes = DuplicateScenes(reuse_soup=scene_fingerprints.soup)
+    duplicate_scenes = api.duplicate_scenes()
     performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_fingerprints.soup)
     duplicate_performers = DuplicatePerformers(reuse_soup=scene_fingerprints.soup)
 

@@ -54,3 +54,10 @@ class BacklogExtractor:
             sheet=sheet,
             skip_done=skip_done,
         )
+
+    def duplicate_scenes(self):
+        from .duplicate_scenes import DuplicateScenes
+        sheet = self.interface.get_sheet(self.SHEET_WHITELIST['duplicate_scenes'])
+        return DuplicateScenes(
+            sheet=sheet,
+        )

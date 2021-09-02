@@ -18,7 +18,7 @@ def main_export_sheet_data():
         print(f'Success: {len(data)} scene entries')
 
     def main_duplicate_scenes():
-        data = export_sheet_data.DuplicateScenes()
+        data = api.duplicate_scenes()
         data.write(paths.path_duplicate_scenes)
         print(f'Success: {len(data)} scene entries')
 

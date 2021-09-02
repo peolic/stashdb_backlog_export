@@ -11,7 +11,6 @@ import requests   # pip install requests
 
 from .models import (
     DuplicatePerformersItem,
-    DuplicateScenesItem,
     PerformersToSplitUpItem,
     SceneFingerprintsDict,
     SceneFingerprintsItem,
@@ -166,84 +165,6 @@ class _BacklogExtractor(_DataExtractor):
     def __init__(self, gid: str, **kw):
         doc_id = '1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ'
         super().__init__(doc_id=doc_id, gid=gid, **kw)
-
-
-class DuplicateScenes(_BacklogExtractor, _DoneClassesMixin):
-    def __init__(self, **kw):
-        super().__init__(gid='1879471751', **kw)
-
-        self.column_category = self.get_column_index('td', text=re.compile('Category'))
-        self.column_studio   = self.get_column_index('td', text=re.compile('Studio'))
-        self.column_main_id  = self.get_column_index('td', text=re.compile('Main ID'))
-
-        self.data: List[DuplicateScenesItem] = []
-        for row in self.data_rows:
-            row = self._transform_row(row)
-
-            # already processed
-            if row.done:
-                continue
-            # useless row
-            if not row.item['main_id'] or not row.item['duplicates']:
-                continue
-
-            self.data.append(row.item)
-
-    class RowResult(NamedTuple):
-        num: int
-        done: bool
-        item: DuplicateScenesItem
-
-    def _transform_row(self, row: bs4.Tag) -> RowResult:
-        done = self._is_row_done(row)
-        row_num = self.get_row_num(row)
-
-        all_cells = row.select('td')
-        category: str = all_cells[self.column_category].text.strip()
-        studio: str = all_cells[self.column_studio].text.strip()
-        main_id: str = all_cells[self.column_main_id].text.strip()
-        duplicates: List[str] = self._get_duplicate_scene_ids(all_cells[self.column_main_id + 1:], row_num)
-
-        if main_id and not is_uuid(main_id):
-            print(f"Row {row_num:<4} | WARNING: Invalid main scene UUID: '{main_id}'")
-            main_id = None
-
-        item: DuplicateScenesItem = { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates }
-
-        if category and category != 'Exact duplicate':
-            item['category'] = category
-
-        return self.RowResult(row_num, done, item)
-
-    def _get_duplicate_scene_ids(self, cells: List[bs4.Tag], row_num: int) -> List[str]:
-        results: List[str] = []
-
-        for cell in cells:
-            scene_id: str = cell.text.strip()
-
-            # skip empty
-            if not scene_id:
-                continue
-
-            # skip anything else
-            if not is_uuid(scene_id):
-                continue
-
-            # skip completed
-            if self.is_cell_done(cell):
-                continue
-                print(f'Row {row_num:<4} | skipped completed {scene_id}')
-
-            if scene_id in results:
-                print(f'Row {row_num:<4} | WARNING: Skipping duplicate scene ID: {scene_id}')
-                continue
-
-            results.append(scene_id)
-
-        return results
-
-    def __iter__(self):
-        return iter(self.data)
 
 
 class DuplicatePerformers(_BacklogExtractor, _DoneClassesMixin):
