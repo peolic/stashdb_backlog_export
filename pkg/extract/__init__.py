@@ -42,3 +42,15 @@ class BacklogExtractor:
             skip_done=skip_done,
             skip_no_id=skip_no_id,
         )
+
+    def scene_fixes(self, skip_done: bool = True):
+        """
+        Args:
+            skip_done   - Skip rows that are marked as done.
+        """
+        from .scene_fixes import SceneFixes
+        sheet = self.interface.get_sheet(self.SHEET_WHITELIST['scene_fixes'])
+        return SceneFixes(
+            sheet=sheet,
+            skip_done=skip_done,
+        )

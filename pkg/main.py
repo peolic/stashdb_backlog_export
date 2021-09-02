@@ -13,7 +13,7 @@ def main_export_sheet_data():
         print(f'Success: {len(data)} scene entries')
 
     def main_scenes_fixes():
-        data = export_sheet_data.SceneFixes()
+        data = api.scene_fixes()
         data.write(paths.path_scene_fixes)
         print(f'Success: {len(data)} scene entries')
 

@@ -18,7 +18,6 @@ from pkg.export_sheet_data import (
     DuplicateScenes,
     PerformersToSplitUp,
     SceneFingerprints,
-    SceneFixes,
 )
 from pkg.extract import BacklogExtractor
 from pkg.utils import get_google_api_key
@@ -30,11 +29,11 @@ def get_data():
     api = BacklogExtractor(api_key=get_google_api_key())
 
     scene_performers = api.scene_performers(skip_no_id=False)
-    scene_fixes = SceneFixes()
-    scene_fingerprints = SceneFingerprints(skip_no_correct_scene=False, reuse_soup=scene_fixes.soup)
-    duplicate_scenes = DuplicateScenes(reuse_soup=scene_fixes.soup)
-    performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_fixes.soup)
-    duplicate_performers = DuplicatePerformers(reuse_soup=scene_fixes.soup)
+    scene_fixes = api.scene_fixes()
+    scene_fingerprints = SceneFingerprints(skip_no_correct_scene=False)
+    duplicate_scenes = DuplicateScenes(reuse_soup=scene_fingerprints.soup)
+    performers_to_split_up = PerformersToSplitUp(reuse_soup=scene_fingerprints.soup)
+    duplicate_performers = DuplicatePerformers(reuse_soup=scene_fingerprints.soup)
 
     print('processing information...')
 
