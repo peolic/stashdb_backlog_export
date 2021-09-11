@@ -45,7 +45,11 @@ def get_data():
 
             # "studio_id": <uuid> => "studio": [<uuid>, <studio-name>]
             if field == 'studio_id':
-                studio_name = pattern_comment_delimiter.split(correction)[0] if correction else None
+                studio_name = None
+                if correction:
+                    lines = pattern_comment_delimiter.split(correction)
+                    if lines and not lines[0].startswith(('http://', 'https://')):
+                        studio_name = lines[0]
                 change['studio'] = [new_data, studio_name]
             else:
                 change[field] = new_data
