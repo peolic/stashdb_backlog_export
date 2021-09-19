@@ -52,16 +52,22 @@ class SheetRow:
     def is_done(self, which: int = 1) -> bool:
         checkboxes = [c.value == 'TRUE' for c in self.cells if c.value in ('TRUE', 'FALSE')]
         if not checkboxes:
-            raise self.CheckboxNotFound('No checkboxes found!')
+            raise self.CheckboxNotFound('No checkboxes found!', self.num)
 
         try:
             return checkboxes[which - 1]
         except IndexError:
             es = 'es' if (count := len(checkboxes)) > 1 else ''
-            raise self.CheckboxNotFound(f'Only {count} checkbox{es} found, cannot get checkbox #{which}!')
+            raise self.CheckboxNotFound(f'Only {count} checkbox{es} found, cannot get checkbox #{which}!', self.num)
 
     class CheckboxNotFound(Exception):
-        ...
+        def __init__(self, message: str, row_num: int):
+            # Call the base class constructor with the parameters it needs
+            super().__init__(message)
+            self.row_num = row_num
+
+        def __str__(self) -> str:
+            return f'Row {self.row_num:<4} | {super().__str__()}'
 
 
 @dataclass
@@ -102,7 +108,7 @@ class Sheet:
         ]
 
         col_count = len(self.columns)
-        offset = self.frozen_row_count + 1 if self.frozen_row_count else 0
+        offset = self.frozen_row_count if self.frozen_row_count else 0
         for num, row in enumerate(row_data[data_row:], 1):
             row_obj = SheetRow.parse(row['values'], num + offset, fill=col_count)
             self.rows.append(row_obj)
