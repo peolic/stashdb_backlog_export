@@ -22,11 +22,17 @@ def get_data():
 
     api = BacklogExtractor(api_key=get_google_api_key())
 
+    print('>>> Scene-Performers')
     scene_performers = api.scene_performers(skip_no_id=False)
+    print('>>> Scene Fixes')
     scene_fixes = api.scene_fixes()
+    print('>>> Scene Fingerprints')
     scene_fingerprints = api.scene_fingerprints(skip_no_correct_scene=False)
+    print('>>> Duplicate Scenes')
     duplicate_scenes = api.duplicate_scenes()
+    print('>>> Performers To Split Up')
     performers_to_split_up = api.performers_to_split_up()
+    print('>>> Duplicate Performers')
     duplicate_performers = api.duplicate_performers()
 
     print('processing information...')
@@ -117,7 +123,11 @@ def get_data():
     )))
 
     for item in performers_to_split_up:
-        performer = performers_index.setdefault(item['main_id'], [''])  # empty content hash
+        p_id = item['main_id']
+        performer = performers_index.setdefault(p_id, [''])  # empty content hash
+        if 'split' in performer[1:]:
+            print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
+            continue
         performer[1:] = sorted(['split'] + performer[1:])
 
     performers_index = dict(sorted(performers_index.items()))
