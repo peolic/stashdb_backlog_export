@@ -5,10 +5,10 @@ class BacklogExtractor:
 
     SPREADSHEET_ID = '1eiOC-wbqbaK8Zp32hjF8YmaKql_aH-yeGLmvHP1oBKQ'
     SHEET_WHITELIST = {
-        'duplicate_performers': 0,
         'performers_to_split_up': 1067038397,
         'scene_performers': 1397718590,
         'scene_fixes': 1419170166,
+        'duplicate_performers': 651710198,
         'duplicate_scenes': 1879471751,
         'scene_fingerprints': 357846927,
     }
