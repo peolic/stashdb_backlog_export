@@ -249,6 +249,8 @@ class ScenePerformers(BacklogBase):
             entry['status'] = status
         if status in ('new', 'c') and url:
             entry['status_url'] = url
+        if cell.note:
+            entry['notes'] = [n for n in cell.note.split('\n') if n.strip()]
         return entry, raw_name
 
     def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int):

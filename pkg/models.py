@@ -4,6 +4,7 @@ class _PerformerEntryOptional(TypedDict, total=False):
     status: str
     status_url: str
     disambiguation: str
+    notes: List[str]
 
 class _PerformerEntryCommon(_PerformerEntryOptional, TypedDict):
     name: str
