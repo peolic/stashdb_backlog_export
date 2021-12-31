@@ -11,7 +11,7 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, Iterable, List, Union
 
 from pkg.extract import BacklogExtractor
 from pkg.utils import get_google_api_key
@@ -68,7 +68,7 @@ def get_data():
 
                 if filtered:
                     comments: List[str] = change.setdefault('comments', [])
-                    comments[:] = list(dict.fromkeys(comments + filtered))
+                    comments[:] = filter_empty(dict.fromkeys(comments + filtered))
 
     for scene_id, fingerprints in scene_fingerprints:
         change = scenes.setdefault(scene_id, {})
@@ -95,7 +95,7 @@ def get_data():
             change['performers']['update'] = update
         if comment := item.get('comment'):
             comments: List[str] = change.setdefault('comments', [])
-            comments[:] = list(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
+            comments[:] = filter_empty(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
     def get_keys(entry: Dict[str, Any]):
         return [make_short_hash(entry), *(k for k in sorted(entry.keys()) if k != 'comments')]
@@ -211,6 +211,9 @@ def make_hashable(o):
         return tuple(sorted(make_hashable(e) for e in o))
 
     return o
+
+def filter_empty(it: Iterable[str]) -> List[str]:
+    return list(filter(str.strip, it))
 
 
 def make_timestamp(add_seconds: int = 0) -> str:

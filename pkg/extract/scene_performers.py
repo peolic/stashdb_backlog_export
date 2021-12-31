@@ -142,7 +142,9 @@ class ScenePerformers(BacklogBase):
         remove = self._get_change_entries(remove_cells, row.num)
         append = self._get_change_entries(append_cells, row.num)
         update = self._find_updates(remove, append, row.num)
-        note   = row.cells[self.column_note].value.strip()
+
+        note_c = row.cells[self.column_note]
+        note   = note_c.value.strip()
 
         studio_info = {'studio': studio}
         if studio and (parent_studio_match := self._parent_studio_pattern.fullmatch(studio)):
@@ -158,8 +160,9 @@ class ScenePerformers(BacklogBase):
         if update:
             item['update'] = update
 
-        if note:
-            item['comment'] = note
+        comment = '\n\n'.join(filter(str.strip, filter(None, [note, note_c.note])))
+        if comment:
+            item['comment'] = comment
 
         return self.RowResult(row.num, done_or_submitted, item)
 
