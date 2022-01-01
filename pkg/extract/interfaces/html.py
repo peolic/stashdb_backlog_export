@@ -2,13 +2,13 @@
 import re
 from dataclasses import dataclass, field
 from typing import List, Optional, Set, Union
+from urllib.parse import parse_qsl, urlparse
 
 import bs4
 import cssutils
 import requests
 
 from ..classes import Sheet, SheetCell, SheetRow
-from ...utils import get_cell_url, get_multiline_text
 
 
 class HTMLInterface:
@@ -184,3 +184,35 @@ def get_done_classes(soup: bs4.BeautifulSoup) -> Set[str]:
             classes.update(c.lstrip('.') for c in selector.split(' ') if c.startswith('.s'))
 
     return classes
+
+
+def parse_google_redirect_url(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return None
+
+    try:
+        url_p = urlparse(url)
+
+        if url_p.hostname == 'www.google.com' and url_p.path == '/url':
+            url_r = dict(parse_qsl(url_p.query))['q']
+            url = urlparse(url_r).geturl()
+
+        return url
+
+    except (ValueError, KeyError):
+        return None
+
+
+def get_cell_url(cell: bs4.element.Tag) -> Optional[str]:
+    try:
+        return parse_google_redirect_url(
+            cell.select_one('a').attrs['href']  # type: ignore
+        )
+    except (AttributeError, KeyError):
+        return None
+
+
+def get_multiline_text(cell: bs4.element.Tag, **get_text_kwargs) -> str:
+    for br in cell.find_all('br'):
+        br.replace_with('\n')  # type: ignore
+    return cell.get_text(**get_text_kwargs)
