@@ -150,12 +150,15 @@ def main():
     CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
     CACHE_ONLY = 'cache' in sys.argv[1:]
 
+    def dot_prefix(s: str):
+        return ('' if CI else '.') + s
+
     if not CACHE_ONLY:
         index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
     if CI or CACHE_ONLY:
         index['lastChecked'] = make_timestamp()  # type: ignore
         index['lastUpdated'] = make_timestamp(10)  # type: ignore
-        (script_dir / '.stashdb_backlog_index.json') \
+        (script_dir / dot_prefix('stashdb_backlog_index.json')) \
             .write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
 
     def make_object_path(uuid: str) -> str:
@@ -166,7 +169,7 @@ def main():
 
     if CI or CACHE_ONLY:
         export_cache_format(
-            script_dir / '.stashdb_backlog.json',
+            script_dir / dot_prefix('stashdb_backlog.json'),
             dict(scenes=scenes, performers=performers),
             with_sorted_toplevel_keys,
         )
