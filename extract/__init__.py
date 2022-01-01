@@ -35,7 +35,7 @@ class BacklogExtractor:
             skip_done   - Skip rows and/or cells that are marked as done.
             skip_no_id  - Skip items completely if at least one if the performers' IDs could not be extracted
         """
-        from .scene_performers import ScenePerformers
+        from .sheets.scene_performers import ScenePerformers
         sheet = self.interface.get_sheet(self.SHEET_WHITELIST['scene_performers'])
         return ScenePerformers(
             sheet=sheet,
@@ -48,7 +48,7 @@ class BacklogExtractor:
         Args:
             skip_done   - Skip rows that are marked as done.
         """
-        from .scene_fixes import SceneFixes
+        from .sheets.scene_fixes import SceneFixes
         sheet = self.interface.get_sheet(self.SHEET_WHITELIST['scene_fixes'])
         return SceneFixes(
             sheet=sheet,
@@ -56,7 +56,7 @@ class BacklogExtractor:
         )
 
     def duplicate_scenes(self):
-        from .duplicate_scenes import DuplicateScenes
+        from .sheets.duplicate_scenes import DuplicateScenes
         sheet = self.interface.get_sheet(self.SHEET_WHITELIST['duplicate_scenes'])
         return DuplicateScenes(
             sheet=sheet,
@@ -67,7 +67,7 @@ class BacklogExtractor:
         Args:
             skip_done - Skip rows and/or cells that are marked as done.
         """
-        from .duplicate_performers import DuplicatePerformers
+        from .sheets.duplicate_performers import DuplicatePerformers
         sheet = self.interface.get_sheet(self.SHEET_WHITELIST['duplicate_performers'])
         return DuplicatePerformers(
             sheet=sheet,
@@ -80,7 +80,7 @@ class BacklogExtractor:
             skip_done             - Skip rows and/or cells that are marked as done.
             skip_no_correct_scene - Skip rows that don't provide the correct scene's ID.
         """
-        from .scene_fingerprints import SceneFingerprints
+        from .sheets.scene_fingerprints import SceneFingerprints
         sheet = self.interface.get_sheet(self.SHEET_WHITELIST['scene_fingerprints'])
         return SceneFingerprints(
             sheet=sheet,
@@ -95,7 +95,7 @@ class BacklogExtractor:
         Args:
             skip_done - Skip rows and/or cells that are marked as done.
         """
-        from .performers_to_split_up import PerformersToSplitUp
+        from .sheets.performers_to_split_up import PerformersToSplitUp
         sheet = self.interface.get_sheet(self.SHEET_WHITELIST['performers_to_split_up'])
         return PerformersToSplitUp(
             sheet=sheet,

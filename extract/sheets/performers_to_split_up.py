@@ -2,10 +2,10 @@
 import re
 from typing import List
 
+from ..base import BacklogBase
+from ..classes import Sheet, SheetRow
 from ..models import PerformersToSplitUpItem
 from ..utils import is_uuid
-from .base import BacklogBase
-from .classes import Sheet, SheetRow
 
 
 class PerformersToSplitUp(BacklogBase):

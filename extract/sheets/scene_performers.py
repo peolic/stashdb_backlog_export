@@ -2,6 +2,8 @@
 import re
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
+from ..base import BacklogBase
+from ..classes import Sheet, SheetCell, SheetRow
 from ..models import (
     AnyPerformerEntry,
     PerformerEntry,
@@ -16,8 +18,6 @@ from ..utils import (
     is_uuid,
     parse_stashdb_url
 )
-from .base import BacklogBase
-from .classes import Sheet, SheetCell, SheetRow
 
 
 class ScenePerformers(BacklogBase):

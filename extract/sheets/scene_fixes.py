@@ -2,10 +2,10 @@
 import re
 from typing import List, NamedTuple, Optional
 
+from ..base import BacklogBase
+from ..classes import Sheet, SheetRow
 from ..models import SceneChangeFieldType, SceneChangeItem, SceneFixesDict
 from ..utils import is_uuid
-from .base import BacklogBase
-from .classes import Sheet, SheetRow
 
 
 class SceneFixes(BacklogBase):

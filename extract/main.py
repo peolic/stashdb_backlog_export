@@ -1,12 +1,10 @@
 import argparse
 from typing import Callable
 
+from . import BacklogExtractor, paths
 from .utils import get_google_api_key
 
-
-def main_export_sheet_data():
-    from . import extract, paths
-
+def main():
     def main_scene_performers(**kwargs):
         data = api.scene_performers(**kwargs)
         data.write(paths.path_scene_performers)
@@ -77,6 +75,6 @@ def main_export_sheet_data():
     }
 
     api_key = None if args.legacy else get_google_api_key()
-    api = extract.BacklogExtractor(api_key=api_key)
+    api = BacklogExtractor(api_key=api_key)
 
     args.main_method(**kwargs)

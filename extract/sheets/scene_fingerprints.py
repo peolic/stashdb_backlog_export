@@ -2,10 +2,10 @@
 import re
 from typing import List, Optional
 
+from ..base import BacklogBase
+from ..classes import Sheet, SheetRow
 from ..models import SceneFingerprintsDict, SceneFingerprintsItem
 from ..utils import is_uuid
-from .base import BacklogBase
-from .classes import Sheet, SheetRow
 
 
 class SceneFingerprints(BacklogBase):

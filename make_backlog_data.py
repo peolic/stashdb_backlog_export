@@ -13,8 +13,8 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Callable, Dict, Iterable, List, Union
 
-from pkg.extract import BacklogExtractor
-from pkg.utils import get_google_api_key
+from extract import BacklogExtractor
+from extract.utils import get_google_api_key
 
 
 def get_data():

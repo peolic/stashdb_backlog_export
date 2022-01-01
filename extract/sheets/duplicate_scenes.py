@@ -2,10 +2,10 @@
 import re
 from typing import List, NamedTuple
 
+from ..base import BacklogBase
+from ..classes import Sheet, SheetCell, SheetRow
 from ..models import DuplicateScenesItem
 from ..utils import is_uuid
-from .base import BacklogBase
-from .classes import Sheet, SheetCell, SheetRow
 
 
 class DuplicateScenes(BacklogBase):
