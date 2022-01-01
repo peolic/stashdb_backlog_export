@@ -4,18 +4,24 @@ import json
 import re
 from pathlib import Path
 from urllib.parse import urlparse, parse_qsl
-from typing import Dict, List, Optional, Set, Tuple, TypedDict
+from typing import Dict, List, Optional, Set, Tuple
 
 # DEPENDENCIES
 import bs4        # pip install beautifulsoup4
 import cssutils   # pip install cssutils
 import requests   # pip install requests
 
+from .models import (
+    DuplicatePerformersItem,
+    DuplicateScenesItem,
+    PerformerEntry,
+    PerformerUpdateEntry,
+    ScenePerformersItem,
+)
+
 # Scene-Performers configuration
 # ==============================
 WRITE_TO_PARENT_FOLDER = True
-# Determine performer appearance update entries from remove & append entries
-USE_UPDATES = True
 # Skip items completely if at least one if the performers' IDs could not be extracted
 SKIP_NO_ID = True
 
@@ -126,30 +132,6 @@ class _DataExtractor:
         return '\n'.join(json.dumps(item) for item in self.data)
 
 
-class _PerformerEntryOptional(TypedDict, total=False):
-    status: Optional[str]
-    disambiguation: str
-
-class PerformerEntry(_PerformerEntryOptional, TypedDict):
-    id: Optional[str]
-    name: str
-    appearance: Optional[str]
-
-class PerformerUpdateEntry(PerformerEntry, TypedDict):
-    old_appearance: Optional[str]
-
-class _ScenePerformersItemOptional(TypedDict, total=False):
-    update: List[PerformerEntry]
-    parent_studio: str
-
-class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
-    studio: Optional[str]
-    scene_id: str
-    remove: List[PerformerEntry]
-    append: List[PerformerEntry]
-    # update: List[PerformerEntry]
-
-
 def format_performer(action: str, p: PerformerEntry, with_id: bool = True) -> str:
     p_id = p['id']
     p_name = p['name']
@@ -175,15 +157,13 @@ def format_performer(action: str, p: PerformerEntry, with_id: bool = True) -> st
 
 
 class ScenePerformers(_DataExtractor):
-    def __init__(self, skip_done: bool = True, use_updates: bool = USE_UPDATES, skip_no_id: bool = SKIP_NO_ID, **kw):
+    def __init__(self, skip_done: bool = True, skip_no_id: bool = SKIP_NO_ID, **kw):
         """
         Args:
             skip_done   - Skip rows and/or cells that are marked as done.
-            use_updates - Determine performer appearance update entries from remove & append entries
             skip_no_id  - Skip items completely if at least one if the performers' IDs could not be extracted
         """
         self.skip_done = skip_done
-        self.use_updates = use_updates
         self.skip_no_id = skip_no_id
 
         super().__init__(gid='1397718590', **kw)
@@ -196,7 +176,7 @@ class ScenePerformers(_DataExtractor):
         _append_columns: List[bs4.Tag] = first_row.find_all('td', text=re.compile(r'\(\d+\) Add/With'))
 
         # indices start at 1, we need 0
-        self.column_studio  = -1 + first_row.index(_studio_column)
+        self.column_studio   = -1 + first_row.index(_studio_column)
         self.column_scene_id = -1 + first_row.index(_scene_id_column)
         self.columns_remove  = [-1 + first_row.index(c) for c in _remove_columns]
         self.columns_append  = [-1 + first_row.index(c) for c in _append_columns]
@@ -208,7 +188,7 @@ class ScenePerformers(_DataExtractor):
             row_num, done, item = self._transform_row(row)
 
             scene_id = item['scene_id']
-            remove, append, update = item['remove'], item['append'], item.get('update', [])
+            remove, append, update = item['remove'], item['append'], item['update']
 
             # already processed
             if self.skip_done and done:
@@ -286,10 +266,8 @@ class ScenePerformers(_DataExtractor):
             'scene_id': scene_id,
             'remove': remove,
             'append': append,
+            'update': update,
         }
-
-        if self.use_updates and update:
-            item['update'] = update
 
         return row_num, done, item
 
@@ -382,6 +360,11 @@ class ScenePerformers(_DataExtractor):
         return entry, raw_name
 
     def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int):
+        """
+        Determine performer appearance update entries from remove & append entries.
+
+        Mutates `remove` & `append` when an update entry is found.
+        """
         updates: List[PerformerUpdateEntry] = []
 
         remove_ids = [i['id'] for i in remove]
@@ -409,10 +392,7 @@ class ScenePerformers(_DataExtractor):
             u_item = PerformerUpdateEntry(**a_item, old_appearance=r_item['appearance'])
             updates.append(u_item)
 
-        # Do not remove from remove/append if not using updates
-        if not self.use_updates:
-            return updates
-
+        # Remove the items from remove & append
         for u_item in updates:
             remove.remove(next(r for r in remove if r['id'] == u_item['id']))
             append.remove(next(a for a in append if a['id'] == u_item['id']))
@@ -425,12 +405,6 @@ class ScenePerformers(_DataExtractor):
 
     def __len__(self):
         return len(self.data)
-
-
-class DuplicateScenesItem(TypedDict):
-    studio: str
-    main_id: str
-    duplicates: List[str]
 
 
 class DuplicateScenes(_DataExtractor):
@@ -494,12 +468,6 @@ class DuplicateScenes(_DataExtractor):
 
     def __len__(self):
         return len(self.data)
-
-
-class DuplicatePerformersItem(TypedDict):
-    name: str
-    main_id: str
-    duplicates: List[str]
 
 
 class DuplicatePerformers(_DataExtractor):
