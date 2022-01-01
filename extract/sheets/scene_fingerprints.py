@@ -9,9 +9,10 @@ from ..utils import is_uuid
 
 
 class SceneFingerprints(BacklogBase):
-    def __init__(self, sheet: Sheet, skip_done: bool, skip_no_correct_scene: bool):
+    def __init__(self, sheet: Sheet, skip_done: bool, skip_no_correct_scene: bool, with_user: bool = False):
         self.skip_done = skip_done
         self.skip_no_correct_scene = skip_no_correct_scene
+        self.with_user = with_user
 
         self.column_scene_id = sheet.get_column_index(re.compile('Scene ID'))
         self.column_algorithm = sheet.get_column_index(re.compile('Algorithm'))
@@ -68,7 +69,7 @@ class SceneFingerprints(BacklogBase):
                 correct_scene_id=correct_scene_id,
             )
 
-            if user:
+            if self.with_user and user:
                 item['user'] = user
 
             data.setdefault(scene_id, []).append(item)
