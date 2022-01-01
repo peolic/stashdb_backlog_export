@@ -12,8 +12,9 @@ class DuplicatePerformers(BacklogBase):
     def __init__(self, sheet: Sheet, skip_done: bool):
         self.skip_done = skip_done
 
-        self.column_name   = sheet.get_column_index(re.compile('Performer'))
+        self.column_name    = sheet.get_column_index(re.compile('Performer'))
         self.column_main_id = sheet.get_column_index(re.compile('Main ID'))
+        self.column_user    = sheet.get_column_index(re.compile('Added by'))
 
         self.data = self._parse(sheet.rows)
 
@@ -47,12 +48,22 @@ class DuplicatePerformers(BacklogBase):
         name: str = row.cells[self.column_name].value.strip()
         main_id: str = row.cells[self.column_main_id].value.strip()
         duplicate_ids: List[str] = self._get_duplicate_performer_ids(row.cells[self.column_main_id + 1:], row.num)
+        user: str = row.cells[self.column_user].value.strip()
 
         if main_id and not is_uuid(main_id):
             print(f"Row {row.num:<4} | WARNING: Invalid main performer UUID: '{main_id}'")
             main_id = None  # type: ignore
 
-        return self.RowResult(row.num, done, { 'name': name, 'main_id': main_id, 'duplicates': duplicate_ids })
+        item = DuplicatePerformersItem(
+            name=name,
+            main_id=main_id,
+            duplicates=duplicate_ids,
+        )
+
+        if user:
+            item['user'] = user
+
+        return self.RowResult(row.num, done, item)
 
     def _get_duplicate_performer_ids(self, cells: List[SheetCell], row_num: int):
         results: List[str] = []

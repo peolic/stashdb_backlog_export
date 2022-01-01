@@ -17,6 +17,7 @@ class SceneFingerprints(BacklogBase):
         self.column_algorithm = sheet.get_column_index(re.compile('Algorithm'))
         self.column_fingerprint = sheet.get_column_index(re.compile('Fingerprint'))
         self.column_correct_scene_id = sheet.get_column_index(re.compile('Correct Scene ID'))
+        self.column_user = sheet.get_column_index(re.compile('Added by'))
 
         self.data = self._parse(sheet.rows)
 
@@ -31,6 +32,7 @@ class SceneFingerprints(BacklogBase):
             algorithm: str = row.cells[self.column_algorithm].value.strip()
             fp_hash: str = row.cells[self.column_fingerprint].value.strip()
             correct_scene_id: Optional[str] = row.cells[self.column_correct_scene_id].value.strip() or None
+            user: str = row.cells[self.column_user].value.strip()
 
             # useless row
             if not (scene_id and algorithm and fp_hash):
@@ -65,6 +67,10 @@ class SceneFingerprints(BacklogBase):
                 hash=fp_hash,
                 correct_scene_id=correct_scene_id,
             )
+
+            if user:
+                item['user'] = user
+
             data.setdefault(scene_id, []).append(item)
 
         return data

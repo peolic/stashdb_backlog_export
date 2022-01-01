@@ -30,6 +30,7 @@ class ScenePerformers(BacklogBase):
         self.columns_remove  = sheet.get_all_column_indices(re.compile(r'\(\d+\) Remove/Replace'))
         self.columns_append  = sheet.get_all_column_indices(re.compile(r'\(\d+\) Add/With'))
         self.column_note     = sheet.get_column_index(re.compile('Edit Note'))
+        self.column_user     = sheet.get_column_index(re.compile('Added by'))
 
         self._parent_studio_pattern = re.compile(r'^(?P<studio>.+?) \[(?P<parent_studio>.+)\]$')
 
@@ -146,6 +147,8 @@ class ScenePerformers(BacklogBase):
         note_c = row.cells[self.column_note]
         note   = note_c.value.strip()
 
+        user: str = row.cells[self.column_user].value.strip()
+
         studio_info = {'studio': studio}
         if studio and (parent_studio_match := self._parent_studio_pattern.fullmatch(studio)):
             studio_info.update(parent_studio_match.groupdict())
@@ -163,6 +166,9 @@ class ScenePerformers(BacklogBase):
         comment = '\n\n'.join(filter(str.strip, filter(None, [note, note_c.note])))
         if comment:
             item['comment'] = comment
+
+        if user:
+            item['user'] = user
 
         return self.RowResult(row.num, done_or_submitted, item)
 

@@ -13,6 +13,7 @@ class DuplicateScenes(BacklogBase):
         self.column_category = sheet.get_column_index(re.compile('Category'))
         self.column_studio   = sheet.get_column_index(re.compile('Studio'))
         self.column_main_id  = sheet.get_column_index(re.compile('Main ID'))
+        self.column_user     = sheet.get_column_index(re.compile('Added by'))
 
         self.data = self._parse(sheet.rows)
 
@@ -44,6 +45,7 @@ class DuplicateScenes(BacklogBase):
         studio: str = row.cells[self.column_studio].value.strip()
         main_id: str = row.cells[self.column_main_id].value.strip()
         duplicates: List[str] = self._get_duplicate_scene_ids(row.cells[self.column_main_id + 1:], row.num)
+        user: str = row.cells[self.column_user].value.strip()
 
         if main_id and not is_uuid(main_id):
             print(f"Row {row.num:<4} | WARNING: Invalid main scene UUID: '{main_id}'")
@@ -53,6 +55,9 @@ class DuplicateScenes(BacklogBase):
 
         if category and category != 'Exact duplicate':
             item['category'] = category
+
+        if user:
+            item['user'] = user
 
         return self.RowResult(row.num, done, item)
 

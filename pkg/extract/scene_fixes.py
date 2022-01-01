@@ -16,6 +16,7 @@ class SceneFixes(BacklogBase):
         self.column_field      = sheet.get_column_index(re.compile('Field'))
         self.column_new_data   = sheet.get_column_index(re.compile('New Data'))
         self.column_correction = sheet.get_column_index(re.compile('Correction'))
+        self.column_user       = sheet.get_column_index(re.compile('Added by'))
 
         self.data = self._parse(sheet.rows)
 
@@ -50,6 +51,7 @@ class SceneFixes(BacklogBase):
         scene_id: str = row.cells[self.column_scene_id].value.strip()
         field: str = row.cells[self.column_field].value.strip()
         correction: Optional[str] = row.cells[self.column_correction].value.strip() or None
+        user: str = row.cells[self.column_user].value.strip()
 
         new_data_cell = row.cells[self.column_new_data]
         new_data = new_data_cell.first_link
@@ -88,6 +90,9 @@ class SceneFixes(BacklogBase):
             new_data=processed_new_data,
             correction=correction,
         )
+
+        if user:
+            change['user'] = user
 
         return self.RowResult(row.num, done, scene_id, change)
 

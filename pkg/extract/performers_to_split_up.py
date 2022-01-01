@@ -14,6 +14,7 @@ class PerformersToSplitUp(BacklogBase):
 
         self.column_name = sheet.get_column_index('Performer')
         self.column_main_id = sheet.get_column_index(re.compile('Performer Stash ID'))
+        self.column_user = sheet.get_column_index(re.compile('Added by'))
 
         self.data = self._parse(sheet.rows)
 
@@ -26,6 +27,7 @@ class PerformersToSplitUp(BacklogBase):
 
             name: str = row.cells[self.column_name].value.strip()
             main_id: str = row.cells[self.column_main_id].value.strip()
+            user: str = row.cells[self.column_user].value.strip()
 
             # useless row
             if not main_id:
@@ -35,6 +37,10 @@ class PerformersToSplitUp(BacklogBase):
                 continue
 
             item = PerformersToSplitUpItem(name=name, main_id=main_id)
+
+            if user:
+                item['user'] = user
+
             data.append(item)
 
         return data
