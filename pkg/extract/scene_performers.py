@@ -10,7 +10,7 @@ from ..models import (
 )
 from ..utils import (
     first_performer_name,
-    format_performer,
+    performer_name,
     format_studio,
     get_all_entries,
     is_uuid,
@@ -68,7 +68,7 @@ class ScenePerformers(BacklogBase):
 
             # skip entries tagged with [merge] as they are marked to be merged into the paired performer
             if self.skip_no_id and by_status.get('merge'):
-                formatted_merge_tagged = [format_performer('', i, False) for i in by_status['merge']]
+                formatted_merge_tagged = [performer_name(i) for i in by_status['merge']]
                 print(
                     f'Row {row.num:<4} | Skipped due to [merge]-tagged performers: '
                     + ' , '.join(formatted_merge_tagged)
@@ -77,7 +77,7 @@ class ScenePerformers(BacklogBase):
             # skip entries tagged with [edit] as they are marked to be edited
             #   and given the information of one of the to-append performers
             if self.skip_no_id and by_status.get('edit'):
-                formatted_edit_tagged = [format_performer('', i, False) for i in by_status['edit']]
+                formatted_edit_tagged = [performer_name(i) for i in by_status['edit']]
                 print(
                     f'Row {row.num:<4} | Skipped due to [edit]-tagged performers: '
                     + ' , '.join(formatted_edit_tagged)
@@ -85,7 +85,7 @@ class ScenePerformers(BacklogBase):
                 continue
             # skip entries tagged with [new] as they are marked to be created
             if self.skip_no_id and by_status.get('new'):
-                formatted_new_tagged = [format_performer('', i, False) for i in by_status['new']]
+                formatted_new_tagged = [performer_name(i) for i in by_status['new']]
                 print(
                     f'Row {row.num:<4} | Skipped due to [new]-tagged performers: '
                     + ' , '.join(formatted_new_tagged)
@@ -94,7 +94,7 @@ class ScenePerformers(BacklogBase):
             # If this item has any performers that do not have a StashDB ID,
             #   skip the whole item for now, to avoid unwanted deletions.
             if self.skip_no_id and (no_id := [i for i in all_entries if not i['id']]):
-                formatted_no_id = [format_performer('', i, False) for i in no_id]
+                formatted_no_id = [performer_name(i) for i in no_id]
                 print(
                     f'Row {row.num:<4} | WARNING: Skipped due to missing performer IDs: '
                     + ' , '.join(formatted_no_id)
@@ -288,8 +288,8 @@ class ScenePerformers(BacklogBase):
                     continue
 
                 print(f"Row {row_num:<4} | WARNING: Unexpected name/ID:"
-                      f"\n  {format_performer('-', r_item)}"
-                      f"\n  {format_performer('-', a_item)}")
+                      f"\n  [{r_item['id']}] - {performer_name(r_item)}"
+                      f"\n  [{a_item['id']}] - {performer_name(a_item)}")
                 continue
 
             u_item = PerformerUpdateEntry(

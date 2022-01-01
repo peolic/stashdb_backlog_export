@@ -36,19 +36,12 @@ def get_all_entries(item: ScenePerformersItem) -> List[AnyPerformerEntry]:
     return remove + append + update  # type: ignore
 
 
-def format_performer(action: str, p: AnyPerformerEntry, with_id: bool = True) -> str:
-    p_id = p['id']
+def performer_name(p: AnyPerformerEntry) -> str:
     p_name = p['name']
     p_dsmbg = p.get('disambiguation')
     p_as = p['appearance']
 
     parts = []
-
-    if with_id:
-        parts.append(f'[{p_id}]')
-
-    if action:
-        parts.append(action)
 
     if p_as:
         parts.extend((p_as, f'({p_name})'))
