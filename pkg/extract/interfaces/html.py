@@ -34,7 +34,7 @@ class LegacySheetCell(SheetCell):
     link: Optional[str]
 
     @classmethod
-    def parse(cls, cell: bs4.Tag, done: bool):
+    def parse(cls, cell: bs4.element.Tag, done: bool):
         value = get_multiline_text(cell)
 
         if checkbox := cell.select_one('use[href$="CheckboxId"], use[xlink\\:href$="CheckboxId"]'):
@@ -58,9 +58,9 @@ class LegacySheetRow(SheetRow):
     cells: List[LegacySheetCell]
 
     @classmethod
-    def parse(cls, row: bs4.Tag, done_classes: Set[str]):
+    def parse(cls, row: bs4.element.Tag, done_classes: Set[str]):
 
-        def is_done(cell: bs4.Tag):
+        def is_done(cell: bs4.element.Tag):
             classes: Optional[List[str]] = cell.attrs.get('class')  # type: ignore
             if classes:
                 return any(c in done_classes for c in classes)
@@ -74,8 +74,8 @@ class LegacySheetRow(SheetRow):
         return obj
 
     @staticmethod
-    def get_row_num(row: bs4.Tag):
-        gutter: Optional[bs4.Tag] = row.select_one('th')
+    def get_row_num(row: bs4.element.Tag):
+        gutter: Optional[bs4.element.Tag] = row.select_one('th')
         if not gutter:
             raise Exception('Failed to get row number')
         return int(gutter.text)
@@ -147,7 +147,7 @@ class LegacySheet(Sheet):
         ]
 
 
-def get_frozen_row_count(sheet: bs4.Tag) -> int:
+def get_frozen_row_count(sheet: bs4.element.Tag) -> int:
     all_rows = sheet.select('tbody > tr')
 
     # <th style="height:3px;" class="freezebar-cell freezebar-horizontal-handle">
@@ -156,7 +156,7 @@ def get_frozen_row_count(sheet: bs4.Tag) -> int:
         raise Exception('ERROR: Frozen row handler not found')
 
     # <tr>
-    frozen_row: Optional[bs4.Tag] = frozen_row_handle.parent
+    frozen_row: Optional[bs4.element.Tag] = frozen_row_handle.parent
     if not frozen_row:
         raise Exception('ERROR: Frozen row not found')
 
@@ -171,7 +171,7 @@ def get_done_classes(soup: bs4.BeautifulSoup) -> Set[str]:
         print('WARNING: Unable to determine partially completed entries')
         return classes
 
-    style: Optional[bs4.Tag] = soup.select_one('head > style')
+    style: Optional[bs4.element.Tag] = soup.select_one('head > style')
     if style is None:
         print('WARNING: Unable to determine partially completed entries')
         return classes
