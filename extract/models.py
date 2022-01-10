@@ -66,6 +66,7 @@ class DuplicateScenesItem(_DuplicateScenesItemOptional, TypedDict):
 
 
 class _DuplicatePerformersItemOptional(TypedDict, total=False):
+    notes: List[str]
     user: str
 
 class DuplicatePerformersItem(_DuplicatePerformersItemOptional, TypedDict):
