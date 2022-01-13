@@ -30,8 +30,14 @@ class SheetCell:
         )
 
     @property
+    def links(self) -> List[str]:
+        if not self.link:
+            return []
+        return self.link if isinstance(self.link, list) else [self.link]
+
+    @property
     def first_link(self) -> Optional[str]:
-        return self.link[0] if isinstance(self.link, list) else self.link
+        return next(iter(self.links), None)
 
 
 @dataclass

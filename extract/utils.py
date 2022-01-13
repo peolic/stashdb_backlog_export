@@ -4,8 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Literal, Optional, Tuple
 
 from .models import AnyPerformerEntry, ScenePerformersItem
-
-script_dir = Path(__file__).parent
+from .paths import script_dir
 
 _uuid = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 UUID_PATTERN = re.compile(_uuid)
