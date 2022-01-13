@@ -106,12 +106,15 @@ def get_data():
     performers: TCacheData = {}
 
     for item in performers_to_split_up:
-        p_id = item['main_id']
+        p_id = item.pop('id')
         performer = performers.setdefault(p_id, {})
         if 'split' in performer:
             print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
             continue
-        performer['split'] = {}
+        item.pop('user', None)
+        for shard in item['shards']:
+            shard.pop('raw', None)
+        performer['split'] = item
 
     for p in duplicate_performers:
         main_id = p['main_id']
