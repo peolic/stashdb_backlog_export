@@ -111,7 +111,13 @@ def get_data():
     for p in duplicate_performers:
         main_id = p['main_id']
         performer = performers.setdefault(main_id, {})
-        performer['duplicates'] = p['duplicates'][:]
+        if 'duplicates' in performer:
+            print(f'WARNING: Duplicate "Duplicate Performers" entry found: {main_id}')
+            continue
+        duplicates = performer['duplicates'] = {}
+        duplicates['ids'] = p['duplicates'][:]
+        if notes := p.get('notes'):
+            duplicates['notes'] = notes
         for dup in p['duplicates']:
             dup_performer = performers.setdefault(dup, {})
             dup_performer['duplicate_of'] = main_id
