@@ -4,4 +4,5 @@ __pycache__/
 
 /.env
 /backlog_data/
+/cache/
 /*.json
