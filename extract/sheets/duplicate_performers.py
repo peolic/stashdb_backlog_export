@@ -84,15 +84,15 @@ class DuplicatePerformers(BacklogBase):
             if not p_id:
                 continue
 
-            # skip anything else, but add it as notes
-            if not is_uuid(p_id):
-                notes.append(cell.first_link or p_id)
-                continue
-
             # skip completed
             if cell.done:
                 continue
                 print(f'Row {row_num:<4} | skipped completed {p_id}')
+
+            # add everything else as notes
+            if not is_uuid(p_id):
+                notes.append(cell.first_link or p_id)
+                continue
 
             if p_id in results:
                 print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer ID: {p_id}')
