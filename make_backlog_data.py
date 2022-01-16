@@ -61,7 +61,12 @@ def get_data():
                 change[field] = new_data
 
             if correction:
-                if field in ('date',):
+                lc = correction.strip().lower()
+                full_comment = (
+                    field in ('date', )
+                    or (field == 'image' and lc != 'missing image')
+                )
+                if full_comment:
                     filtered = pattern_comment_delimiter.split(correction)
                 else:
                     filtered = pattern_find_urls.findall(correction)
