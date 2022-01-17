@@ -45,9 +45,15 @@ class DuplicatePerformers(BacklogBase):
     def _transform_row(self, row: SheetRow) -> RowResult:
         done = row.is_done()
 
-        name: str = row.cells[self.column_name].value.strip()
+        cell_name = row.cells[self.column_name]
+        cells_duplicates = row.cells[self.column_main_id + 1:]
+
+        notes = list(filter(str.strip, cell_name.note.split('\n')))
+
+        name: str = cell_name.value.strip()
         main_id: str = row.cells[self.column_main_id].value.strip()
-        duplicate_ids: List[str] = self._get_duplicate_performer_ids(row.cells[self.column_main_id + 1:], row.num)
+        duplicate_ids = self._get_duplicate_performer_ids(cells_duplicates, notes, row.num)
+        notes = list(dict.fromkeys(filter(None, notes)))
         user: str = row.cells[self.column_user].value.strip()
 
         if main_id and not is_uuid(main_id):
@@ -60,12 +66,15 @@ class DuplicatePerformers(BacklogBase):
             duplicates=duplicate_ids,
         )
 
+        if notes:
+            item['notes'] = notes
+
         if user:
             item['user'] = user
 
         return self.RowResult(row.num, done, item)
 
-    def _get_duplicate_performer_ids(self, cells: List[SheetCell], row_num: int):
+    def _get_duplicate_performer_ids(self, cells: List[SheetCell], notes: List[str], row_num: int):
         results: List[str] = []
 
         for cell in cells:
@@ -75,14 +84,15 @@ class DuplicatePerformers(BacklogBase):
             if not p_id:
                 continue
 
-            # skip anything else
-            if not is_uuid(p_id):
-                continue
-
             # skip completed
             if cell.done:
                 continue
                 print(f'Row {row_num:<4} | skipped completed {p_id}')
+
+            # add everything else as notes
+            if not is_uuid(p_id):
+                notes.append(cell.first_link or p_id)
+                continue
 
             if p_id in results:
                 print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer ID: {p_id}')
