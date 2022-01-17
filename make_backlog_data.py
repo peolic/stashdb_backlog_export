@@ -104,16 +104,15 @@ def get_data():
             comments: List[str] = change.setdefault('comments', [])
             comments[:] = filter_empty(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
-    def get_keys(entry: TAnyDict):
-        return [make_short_hash(entry), *(k for k in sorted(entry.keys()) if k != 'comments')]
-
-    # "scene_id": [content_hash, "date", "performers", "title"]
-    scenes_index = dict(sorted(zip(
-        scenes.keys(),
-        map(get_keys, scenes.values()),
-    )))
-
     performers: Dict[str, TAnyDict] = {}
+
+    for item in performers_to_split_up:
+        p_id = item['main_id']
+        performer = performers.setdefault(p_id, {})
+        if 'split' in performer:
+            print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
+            continue
+        performer['split'] = {}
 
     for p in duplicate_performers:
         main_id = p['main_id']
@@ -129,36 +128,17 @@ def get_data():
             dup_performer = performers.setdefault(dup, {})
             dup_performer['duplicate_of'] = main_id
 
-    # "performer_id": [content_hash, "duplicates", "split"]
-    performers_index = dict(sorted(zip(
-        performers.keys(),
-        map(get_keys, performers.values()),
-    )))
-
-    for item in performers_to_split_up:
-        p_id = item['main_id']
-        performer = performers_index.setdefault(p_id, [''])  # empty content hash
-        if 'split' in performer[1:]:
-            print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
-            continue
-        performer[1:] = sorted(['split'] + performer[1:])
-
-    performers_index = dict(sorted(performers_index.items()))
-
-    index: Dict[str, Dict[str, List[str]]] = dict(scenes=scenes_index, performers=performers_index)
-
-    return index, scenes, performers
+    return scenes, performers
 
 
 def main():
     script_dir = Path(__file__).parent
 
     target_path = script_dir / 'backlog_data'
-    index_path = target_path / 'index.json'
     scenes_target = target_path / 'scenes'
     performers_target = target_path / 'performers'
 
-    index, scenes, performers = get_data()
+    scenes, performers = get_data()
 
     CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
     CACHE_ONLY = 'cache' in sys.argv[1:]
@@ -173,13 +153,6 @@ def main():
     if CACHE_ONLY:
         cache_target = script_dir / 'cache'
         cache_target.mkdir(exist_ok=True)
-
-    if not CACHE_ONLY:
-        index_path.write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
-    if CI or CACHE_ONLY:
-        index['lastChecked'] = make_timestamp()  # type: ignore
-        index['lastUpdated'] = make_timestamp(10)  # type: ignore
-        (cache_target / 'stashdb_backlog_index.json').write_bytes(cache_to_json(index))
 
     def make_object_path(uuid: str) -> str:
         return f'{uuid[:2]}/{uuid}.json'
@@ -252,8 +225,8 @@ def export_cache_format(objects: Dict[str, TCacheData]):
         for obj_id, item in obj_data.items():
             key = f'{obj[:-1]}/{obj_id}'
             data[key] = with_sorted_toplevel_keys(item)
-            data[key]['lastUpdated'] = make_timestamp(10)
-            data[key]['contentHash'] = make_short_hash(item)
+    data['lastUpdated'] = make_timestamp(10)  # type: ignore
+    data['lastChecked'] = make_timestamp()  # type: ignore
     return data
 
 # https://gist.github.com/jannismain/e96666ca4f059c3e5bc28abb711b5c92
