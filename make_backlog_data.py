@@ -11,10 +11,12 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Callable, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Union
 
 from extract import BacklogExtractor
 from extract.utils import get_google_api_key
+
+TAnyDict = Dict[str, Any]
 
 
 def get_data():
@@ -37,7 +39,7 @@ def get_data():
 
     print('processing information...')
 
-    scenes: Dict[str, Dict[str, Any]] = {}
+    scenes: Dict[str, TAnyDict] = {}
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
     pattern_comment_delimiter = re.compile(r' ; | *\n')
@@ -102,7 +104,7 @@ def get_data():
             comments: List[str] = change.setdefault('comments', [])
             comments[:] = filter_empty(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
-    def get_keys(entry: Dict[str, Any]):
+    def get_keys(entry: TAnyDict):
         return [make_short_hash(entry), *(k for k in sorted(entry.keys()) if k != 'comments')]
 
     # "scene_id": [content_hash, "date", "performers", "title"]
@@ -111,7 +113,7 @@ def get_data():
         map(get_keys, scenes.values()),
     )))
 
-    performers: Dict[str, Dict[str, Any]] = {}
+    performers: Dict[str, TAnyDict] = {}
 
     for p in duplicate_performers:
         main_id = p['main_id']
@@ -161,6 +163,12 @@ def main():
     CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
     CACHE_ONLY = 'cache' in sys.argv[1:]
 
+    def cache_to_json(data: TAnyDict) -> bytes:
+        indent = None if CI else 2
+        separators = (',', ':') if CI else None
+        cls = None if CI else CompactJSONEncoder
+        return json.dumps(data, indent=indent, separators=separators, cls=cls).encode('utf-8')
+
     cache_target = script_dir
     if CACHE_ONLY:
         cache_target = script_dir / 'cache'
@@ -171,21 +179,14 @@ def main():
     if CI or CACHE_ONLY:
         index['lastChecked'] = make_timestamp()  # type: ignore
         index['lastUpdated'] = make_timestamp(10)  # type: ignore
-        (cache_target / 'stashdb_backlog_index.json') \
-            .write_bytes(json.dumps(index, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
+        (cache_target / 'stashdb_backlog_index.json').write_bytes(cache_to_json(index))
 
     def make_object_path(uuid: str) -> str:
         return f'{uuid[:2]}/{uuid}.json'
 
-    def with_sorted_toplevel_keys(data: Dict[str, Any]) -> Dict[str, Any]:
-        return dict(sorted(data.items(), key=operator.itemgetter(0)))
-
     if CI or CACHE_ONLY:
-        export_cache_format(
-            cache_target / 'stashdb_backlog.json',
-            dict(scenes=scenes, performers=performers),
-            with_sorted_toplevel_keys,
-        )
+        cache_data = export_cache_format(dict(scenes=scenes, performers=performers))
+        (cache_target / 'stashdb_backlog.json').write_bytes(cache_to_json(cache_data))
         if CACHE_ONLY:
             return
 
@@ -239,19 +240,21 @@ def make_timestamp(add_seconds: int = 0) -> str:
     return dt.isoformat(timespec='milliseconds') + 'Z'
 
 
-TAnyDict = Dict[str, Any]
+def with_sorted_toplevel_keys(data: TAnyDict) -> TAnyDict:
+    return dict(sorted(data.items(), key=operator.itemgetter(0)))
+
+
 TCacheData = Dict[str, TAnyDict]
 
-def export_cache_format(target: Path, objects: Dict[str, TCacheData], contents_func: Callable[[TAnyDict], TAnyDict]):
+def export_cache_format(objects: Dict[str, TCacheData]):
     data: TCacheData = {}
     for obj, obj_data in objects.items():
         for obj_id, item in obj_data.items():
             key = f'{obj[:-1]}/{obj_id}'
-            data[key] = contents_func(item)
+            data[key] = with_sorted_toplevel_keys(item)
             data[key]['lastUpdated'] = make_timestamp(10)
             data[key]['contentHash'] = make_short_hash(item)
-    target.write_bytes(json.dumps(data, indent=2, cls=CompactJSONEncoder).encode('utf-8'))
-
+    return data
 
 # https://gist.github.com/jannismain/e96666ca4f059c3e5bc28abb711b5c92
 class CompactJSONEncoder(json.JSONEncoder):
