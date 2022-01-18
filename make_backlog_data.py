@@ -1,12 +1,12 @@
 #!/usr/bin/env python3.8
 # coding: utf-8
 import json
-import operator
 import os
 import re
 import sys
 from contextlib import suppress
 from datetime import datetime, timedelta
+from operator import itemgetter
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Dict, Iterable, List, Union
@@ -15,6 +15,7 @@ from extract import BacklogExtractor
 from extract.utils import get_google_api_key
 
 TAnyDict = Dict[str, Any]
+TCacheData = Dict[str, TAnyDict]
 
 
 def get_data():
@@ -37,7 +38,7 @@ def get_data():
 
     print('processing information...')
 
-    scenes: Dict[str, TAnyDict] = {}
+    scenes: TCacheData = {}
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
     pattern_comment_delimiter = re.compile(r' ; | *\n')
@@ -102,7 +103,7 @@ def get_data():
             comments: List[str] = change.setdefault('comments', [])
             comments[:] = filter_empty(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
-    performers: Dict[str, TAnyDict] = {}
+    performers: TCacheData = {}
 
     for item in performers_to_split_up:
         p_id = item['main_id']
@@ -194,10 +195,8 @@ def make_timestamp(add_seconds: int = 0) -> str:
 
 
 def with_sorted_toplevel_keys(data: TAnyDict) -> TAnyDict:
-    return dict(sorted(data.items(), key=operator.itemgetter(0)))
+    return dict(sorted(data.items(), key=itemgetter(0)))
 
-
-TCacheData = Dict[str, TAnyDict]
 
 def export_cache_format(objects: Dict[str, TCacheData]):
     data: TCacheData = {}
