@@ -6,10 +6,11 @@ import re
 import sys
 from contextlib import suppress
 from datetime import datetime, timedelta
+from itertools import groupby
 from operator import itemgetter
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Tuple, Union
 
 from extract import BacklogExtractor
 from extract.utils import get_google_api_key
@@ -153,9 +154,6 @@ def main():
         cache_target = script_dir / 'cache'
         cache_target.mkdir(exist_ok=True)
 
-    def make_object_path(uuid: str) -> str:
-        return f'{uuid[:2]}/{uuid}.json'
-
     if CI or CACHE_ONLY:
         cache_data = export_cache_format(dict(scenes=scenes, performers=performers))
         (cache_target / 'stashdb_backlog.json').write_bytes(cache_to_json(cache_data))
@@ -165,20 +163,16 @@ def main():
     with suppress(FileNotFoundError):
         rmtree(scenes_target)
 
-    for scene_id, scene in scenes.items():
-        scene_path = scenes_target / make_object_path(scene_id)
-        scene_path.parent.mkdir(parents=True, exist_ok=True)
-        scene_data = with_sorted_toplevel_keys(scene)
-        scene_path.write_bytes(json.dumps(scene_data, indent=2).encode('utf-8'))
+    scenes_target.mkdir(parents=True, exist_ok=True)
+    for target, data in make_groups(scenes, scenes_target):
+        target.write_bytes(json.dumps(data, indent=2).encode('utf-8'))
 
     with suppress(FileNotFoundError):
         rmtree(performers_target)
 
-    for performer_id, performer in performers.items():
-        performer_path = performers_target / make_object_path(performer_id)
-        performer_path.parent.mkdir(parents=True, exist_ok=True)
-        performer_data = with_sorted_toplevel_keys(performer)
-        performer_path.write_bytes(json.dumps(performer_data, indent=2).encode('utf-8'))
+    performers_target.mkdir(parents=True, exist_ok=True)
+    for target, data in make_groups(performers, performers_target):
+        target.write_bytes(json.dumps(data, indent=2).encode('utf-8'))
 
     print('done')
 
@@ -194,8 +188,24 @@ def make_timestamp(add_seconds: int = 0) -> str:
     return dt.isoformat(timespec='milliseconds') + 'Z'
 
 
+def get_prefix(item: Tuple[str, Any]):
+    key, value = item
+    return key[:2]
+
+
 def with_sorted_toplevel_keys(data: TAnyDict) -> TAnyDict:
     return dict(sorted(data.items(), key=itemgetter(0)))
+
+
+def make_groups(dataset: TCacheData, target_base: Path):
+    sorted_data = sorted(dataset.items(), key=itemgetter(0))
+    for group, items in groupby(sorted_data, get_prefix):
+        target = target_base / f'{group}.json'
+        data = {
+            item_id: with_sorted_toplevel_keys(item)
+            for item_id, item in items
+        }
+        yield target, data
 
 
 def export_cache_format(objects: Dict[str, TCacheData]):
