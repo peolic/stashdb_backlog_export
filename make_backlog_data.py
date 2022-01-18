@@ -1,7 +1,5 @@
 #!/usr/bin/env python3.8
 # coding: utf-8
-import base64
-import hashlib
 import json
 import operator
 import os
@@ -183,24 +181,6 @@ def main():
 
     print('done')
 
-
-# Hashing based on https://stackoverflow.com/a/42151923
-def make_short_hash(o):
-    hasher = hashlib.md5()
-    hasher.update(repr(make_hashable(o)).encode())
-    return base64.b64encode(hasher.digest()).decode()
-
-def make_hashable(o):
-    if isinstance(o, (tuple, list)):
-        return tuple((make_hashable(e) for e in o))
-
-    if isinstance(o, dict):
-        return tuple(sorted((k, make_hashable(v)) for k,v in o.items()))
-
-    if isinstance(o, (set, frozenset)):
-        return tuple(sorted(make_hashable(e) for e in o))
-
-    return o
 
 def filter_empty(it: Iterable[str]) -> List[str]:
     return list(filter(str.strip, it))
