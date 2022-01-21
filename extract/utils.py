@@ -9,6 +9,7 @@ from .paths import script_dir
 _uuid = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 UUID_PATTERN = re.compile(_uuid)
 STASHDB_UUID_PATTERN = re.compile(r'/([a-z]+)/(' + _uuid + r')')
+URL_PATTERN = re.compile(r'(https?://[^\s]+)')
 
 
 def is_uuid(text: str) -> bool:
