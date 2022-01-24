@@ -46,8 +46,8 @@ class ScenePerformers(BacklogBase):
 
             # already processed
             if not self.skip_done:
-                row.item['done'] = row.done_or_submitted  # type: ignore
-            elif row.done_or_submitted:
+                row.item['done'] = row.done
+            elif row.done:
                 continue
             # empty row
             if not scene_id:
@@ -125,15 +125,17 @@ class ScenePerformers(BacklogBase):
 
     class RowResult(NamedTuple):
         num: int
-        done_or_submitted: bool
+        submitted: bool
+        done: bool
         item: ScenePerformersItem
 
     def _transform_row(self, row: SheetRow) -> RowResult:
         try:
-            # The first column is used for 'submitted' status.
-            done_or_submitted = row.is_done(2) or row.is_done(1)
+            submitted = row.is_done(1)
+            done = row.is_done(2)
         except row.CheckboxNotFound:
-            done_or_submitted = row.is_done()
+            submitted = False
+            done = row.is_done()
 
         remove_cells = [c for i, c in enumerate(row.cells) if i in self.columns_remove]
         append_cells = [c for i, c in enumerate(row.cells) if i in self.columns_append]
@@ -170,7 +172,7 @@ class ScenePerformers(BacklogBase):
         if user:
             item['user'] = user
 
-        return self.RowResult(row.num, done_or_submitted, item)
+        return self.RowResult(row.num, submitted, done, item)
 
     def _get_change_entries(self, cells: List[SheetCell], row_num: int):
         results: List[PerformerEntry] = []

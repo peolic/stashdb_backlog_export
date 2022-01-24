@@ -25,6 +25,7 @@ class _ScenePerformersItemOptional(TypedDict, total=False):
     update: List[PerformerUpdateEntry]
     comment: str
     user: str
+    done: bool
 
 class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
     studio: Optional[str]
