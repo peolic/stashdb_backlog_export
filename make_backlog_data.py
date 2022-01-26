@@ -103,6 +103,8 @@ def get_data():
             comments: List[str] = change.setdefault('comments', [])
             comments[:] = filter_empty(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
+        change['c_studio'] = [item['studio'], item.get('parent_studio')]
+
     performers: TCacheData = {}
 
     for item in performers_to_split_up:
