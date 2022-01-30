@@ -49,6 +49,10 @@ class ScenePerformers(BacklogBase):
                 row.item['done'] = row.done
             elif row.done:
                 continue
+
+            if row.submitted:
+                row.item['submitted'] = row.submitted
+
             # empty row
             if not scene_id:
                 continue

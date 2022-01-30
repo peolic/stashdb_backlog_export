@@ -39,6 +39,7 @@ def get_data():
     print('processing information...')
 
     scenes: TCacheData = {}
+    submitted: List[str] = []
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
     pattern_comment_delimiter = re.compile(r' ; | *\n')
@@ -93,7 +94,8 @@ def get_data():
             dup_scene['duplicate_of'] = main_id
 
     for item in scene_performers:
-        change = scenes.setdefault(item['scene_id'], {})
+        scene_id = item['scene_id']
+        change = scenes.setdefault(scene_id, {})
         change['performers'] = {}
         change['performers']['remove'] = item['remove']
         change['performers']['append'] = item['append']
@@ -104,6 +106,8 @@ def get_data():
             comments[:] = filter_empty(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
         change['c_studio'] = [item['studio'], item.get('parent_studio')]
+        if item.get('submitted', False) and scene_id not in submitted:
+            submitted.append(scene_id)
 
     performers: TCacheData = {}
 
@@ -132,7 +136,7 @@ def get_data():
             dup_performer = performers.setdefault(dup, {})
             dup_performer['duplicate_of'] = main_id
 
-    return scenes, performers
+    return scenes, performers, submitted
 
 
 def main():
@@ -142,7 +146,7 @@ def main():
     scenes_target = target_path / 'scenes'
     performers_target = target_path / 'performers'
 
-    scenes, performers = get_data()
+    scenes, performers, submitted = get_data()
 
     CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
     CACHE_ONLY = 'cache' in sys.argv[1:]
@@ -162,7 +166,7 @@ def main():
         return f'{uuid[:2]}/{uuid}.json'
 
     if CI or CACHE_ONLY:
-        cache_data = export_cache_format(dict(scenes=scenes, performers=performers))
+        cache_data = export_cache_format(dict(scenes=scenes, performers=performers), submitted=submitted)
         (cache_target / 'stashdb_backlog.json').write_bytes(cache_to_json(cache_data))
         if CACHE_ONLY:
             return
@@ -203,7 +207,7 @@ def with_sorted_toplevel_keys(data: TAnyDict) -> TAnyDict:
     return dict(sorted(data.items(), key=itemgetter(0)))
 
 
-def export_cache_format(objects: Dict[str, TCacheData]):
+def export_cache_format(objects: Dict[str, TCacheData], submitted: List[str]):
     data: TCacheData = {}
     for obj, obj_data in objects.items():
         for obj_id, item in obj_data.items():
@@ -211,6 +215,7 @@ def export_cache_format(objects: Dict[str, TCacheData]):
             data[key] = with_sorted_toplevel_keys(item)
     data['lastUpdated'] = make_timestamp(10)  # type: ignore
     data['lastChecked'] = make_timestamp()  # type: ignore
+    data['submitted'] = submitted  # type: ignore
     return data
 
 # https://gist.github.com/jannismain/e96666ca4f059c3e5bc28abb711b5c92

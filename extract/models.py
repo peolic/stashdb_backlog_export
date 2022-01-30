@@ -25,6 +25,7 @@ class _ScenePerformersItemOptional(TypedDict, total=False):
     update: List[PerformerUpdateEntry]
     comment: str
     user: str
+    submitted: bool
     done: bool
 
 class ScenePerformersItem(_ScenePerformersItemOptional, TypedDict):
