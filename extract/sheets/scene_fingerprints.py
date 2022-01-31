@@ -74,6 +74,13 @@ class SceneFingerprints(BacklogBase):
 
             data.setdefault(scene_id, []).append(item)
 
+        # dedupe
+        for items in data.values():
+            items[:] = list({
+                (item['algorithm'], item['hash']): item
+                for item in items
+            }.values())
+
         return data
 
     def __iter__(self):
