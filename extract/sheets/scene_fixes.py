@@ -46,7 +46,12 @@ class SceneFixes(BacklogBase):
         change: Optional[SceneChangeItem]
 
     def _transform_row(self, row: SheetRow) -> RowResult:
-        done = row.is_done()
+        try:
+            submitted = row.is_done(1)
+            done = row.is_done(2)
+        except row.CheckboxNotFound:
+            submitted = False
+            done = row.is_done()
 
         scene_id: str = row.cells[self.column_scene_id].value.strip()
         field: str = row.cells[self.column_field].value.strip()
@@ -90,6 +95,13 @@ class SceneFixes(BacklogBase):
             new_data=processed_new_data,
             correction=correction,
         )
+
+
+        if submitted:
+            change['submitted'] = submitted
+
+        if done:
+            change['done'] = done
 
         if user:
             change['user'] = user

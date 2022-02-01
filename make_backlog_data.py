@@ -39,7 +39,7 @@ def get_data():
     print('processing information...')
 
     scenes: TCacheData = {}
-    submitted: List[str] = []
+    submitted: TAnyDict = {}
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
     pattern_comment_delimiter = re.compile(r' ; | *\n')
@@ -77,6 +77,9 @@ def get_data():
                     comments: List[str] = change.setdefault('comments', [])
                     comments[:] = filter_empty(dict.fromkeys(comments + filtered))
 
+            if fix.get('submitted', False):
+                submitted[scene_id] = True
+
     for scene_id, fingerprints in scene_fingerprints:
         change = scenes.setdefault(scene_id, {})
         change['fingerprints'] = fingerprints
@@ -106,8 +109,8 @@ def get_data():
             comments[:] = filter_empty(dict.fromkeys(comments + pattern_comment_delimiter.split(comment)))
 
         change['c_studio'] = [item['studio'], item.get('parent_studio')]
-        if item.get('submitted', False) and scene_id not in submitted:
-            submitted.append(scene_id)
+        if item.get('submitted', False):
+            submitted[scene_id] = True
 
     performers: TCacheData = {}
 
@@ -207,15 +210,18 @@ def with_sorted_toplevel_keys(data: TAnyDict) -> TAnyDict:
     return dict(sorted(data.items(), key=itemgetter(0)))
 
 
-def export_cache_format(objects: Dict[str, TCacheData], submitted: List[str]):
+def export_cache_format(objects: Dict[str, TCacheData], submitted: TAnyDict):
     data: TCacheData = {}
     for obj, obj_data in objects.items():
         for obj_id, item in obj_data.items():
             key = f'{obj[:-1]}/{obj_id}'
             data[key] = with_sorted_toplevel_keys(item)
-    data['lastUpdated'] = make_timestamp(10)  # type: ignore
-    data['lastChecked'] = make_timestamp()  # type: ignore
-    data['submitted'] = submitted  # type: ignore
+    data['lastUpdated'] = (  # type: ignore
+        make_timestamp(10))
+    data['lastChecked'] = (  # type: ignore
+        make_timestamp())
+    data['submitted'] = (  # type: ignore
+        list(submitted))
     return data
 
 # https://gist.github.com/jannismain/e96666ca4f059c3e5bc28abb711b5c92
