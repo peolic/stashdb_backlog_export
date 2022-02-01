@@ -48,6 +48,8 @@ SceneChangeFieldType = Literal[
 
 class _SceneChangeItemOptional(TypedDict, total=False):
     user: str
+    submitted: bool
+    done: bool
 
 class SceneChangeItem(_SceneChangeItemOptional, TypedDict):
     field: SceneChangeFieldType
