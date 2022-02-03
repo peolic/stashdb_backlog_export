@@ -14,7 +14,7 @@ class PerformersToSplitUp(BacklogBase):
         self.skip_done = skip_done
 
         self.column_name    = sheet.get_column_index('Performer')
-        self.column_p_id    = sheet.get_column_index(re.compile('Performer Stash ID'))
+        self.column_p_id    = sheet.get_column_index(re.compile('Performer ID'))
         self.column_user    = sheet.get_column_index(re.compile('Added by'))
         self.column_notes   = sheet.get_column_index(re.compile('Notes'))
         self.columns_shards = sheet.get_all_column_indices(re.compile(r'Performer \d'))
