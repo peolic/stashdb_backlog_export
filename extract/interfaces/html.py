@@ -31,7 +31,6 @@ class HTMLInterface:
 
 @dataclass
 class LegacySheetCell(SheetCell):
-    link: Optional[str]
 
     @classmethod
     def parse(cls, cell: bs4.element.Tag, done: bool):
@@ -45,9 +44,13 @@ class LegacySheetCell(SheetCell):
 
             value = str(href == '#checkedCheckboxId').upper()
 
+        links: List[str] = []
+        if link := get_cell_url(cell):
+            links.append(link)
+
         return cls(
             value=value,
-            link=get_cell_url(cell),
+            links=links,
             note='',
             done=done,
         )

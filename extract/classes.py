@@ -2,12 +2,13 @@
 import re
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
+from urllib.parse import urlparse
 
 
 @dataclass
 class SheetCell:
     value: str
-    link: Union[None, str, List[str]]
+    links: List[str]
     note: str
     done: bool
 
@@ -16,24 +17,21 @@ class SheetCell:
         links: List[str] = []
         for fr in cell.get('textFormatRuns', []):
             if link := fr['format'].get('link', {}).get('uri'):
-                links.append(link)
+                if urlparse(link).netloc:
+                    links.append(link)
 
         link: Optional[str] = cell.get('hyperlink')
+        if link and urlparse(link).netloc:
+            links.append(link)
 
         done = cell.get('effectiveFormat', {}).get('textFormat', {}).get('strikethrough', False)
 
         return cls(
             value=cell.get('formattedValue', ''),
-            link=links or link,
+            links=links,
             note=cell.get('note', ''),
             done=done,
         )
-
-    @property
-    def links(self) -> List[str]:
-        if not self.link:
-            return []
-        return self.link if isinstance(self.link, list) else [self.link]
 
     @property
     def first_link(self) -> Optional[str]:
@@ -50,7 +48,7 @@ class SheetRow:
         cells = [SheetCell.parse(cell) for cell in row]
         if fill > (count := len(cells)):
             cells.extend(
-                SheetCell(value='', link=None, note='', done=False)
+                SheetCell(value='', links=[], note='', done=False)
                 for _ in range(fill - count)
             )
         return cls(num=num, cells=cells)
