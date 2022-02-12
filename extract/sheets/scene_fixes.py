@@ -1,6 +1,6 @@
 # coding: utf-8
 import re
-from typing import List, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetRow
@@ -22,12 +22,21 @@ class SceneFixes(BacklogBase):
 
     def _parse(self, rows: List[SheetRow]) -> SceneFixesDict:
         data: SceneFixesDict = {}
+        last_seen: Dict[str, int] = {}
+
         for row in rows:
             row = self._transform_row(row)
 
             # already processed
             if self.skip_done and row.done:
                 continue
+
+            last_row = last_seen.get(row.scene_id, None)
+            if last_row and row.num > (last_row + 1):
+                print(f'Row {row.num:<4} | WARNING: Ungrouped entries for scene ID {row.scene_id!r} last seen row {last_row}')
+            else:
+                last_seen[row.scene_id] = row.num
+
             # empty row or error
             if not row.scene_id or not row.change:
                 continue
@@ -95,7 +104,6 @@ class SceneFixes(BacklogBase):
             new_data=processed_new_data,
             correction=correction,
         )
-
 
         if submitted:
             change['submitted'] = submitted

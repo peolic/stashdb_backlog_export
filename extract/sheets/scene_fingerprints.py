@@ -1,6 +1,6 @@
 # coding: utf-8
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetRow
@@ -24,6 +24,8 @@ class SceneFingerprints(BacklogBase):
 
     def _parse(self, rows: List[SheetRow]) -> SceneFingerprintsDict:
         data: SceneFingerprintsDict = {}
+        last_seen: Dict[str, int] = {}
+
         for row in rows:
             # already processed
             if self.skip_done and row.is_done():
@@ -39,9 +41,11 @@ class SceneFingerprints(BacklogBase):
             if not (scene_id and algorithm and fp_hash):
                 continue
 
-            if self.skip_no_correct_scene and not correct_scene_id:
-                print(f'Row {row.num:<4} | WARNING: Skipped due to missing correct scene ID')
-                continue
+            last_row = last_seen.get(scene_id, None)
+            if last_row and row.num > (last_row + 1):
+                print(f'Row {row.num:<4} | WARNING: Ungrouped entries for scene ID {scene_id!r} last seen row {last_row}')
+            else:
+                last_seen[scene_id] = row.num
 
             if algorithm not in ('phash', 'oshash', 'md5'):
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid algorithm')
@@ -57,6 +61,10 @@ class SceneFingerprints(BacklogBase):
 
             if not is_uuid(scene_id):
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID')
+                continue
+
+            if self.skip_no_correct_scene and not correct_scene_id:
+                print(f'Row {row.num:<4} | WARNING: Skipped due to missing correct scene ID')
                 continue
 
             if correct_scene_id and not is_uuid(correct_scene_id):
