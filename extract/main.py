@@ -35,6 +35,11 @@ def main():
         data.write(paths.path_performers_to_split_up)
         print(f'Success: {len(data)} performer entries')
 
+    def main_performer_urls():
+        data = api.performer_urls()
+        data.write(paths.path_performer_urls)
+        print(f'Success: {len(data)} performer entries')
+
     class Arguments(argparse.Namespace):
         main_method: Callable[[], None]
         legacy: bool
@@ -66,6 +71,9 @@ def main():
 
     subparsers.add_parser(name='ps', help="Performers To Split Up") \
         .set_defaults(main_method=main_performers_to_split_up)
+
+    subparsers.add_parser(name='pu', help="Performer URLs") \
+        .set_defaults(main_method=main_performer_urls)
 
     args = parser.parse_args(namespace=Arguments())
 

@@ -11,6 +11,7 @@ class BacklogExtractor:
         'duplicate_performers': 651710198,
         'duplicate_scenes': 1879471751,
         'scene_fingerprints': 357846927,
+        'performer_urls': 1209918135,
     }
 
     def __init__(self, api_key: Optional[str]):
@@ -90,14 +91,24 @@ class BacklogExtractor:
 
     def performers_to_split_up(self, skip_done: bool = True):
         """
-        NOTE: PARTIAL EXTRACTOR
-
         Args:
             skip_done - Skip rows and/or cells that are marked as done.
         """
         from .sheets.performers_to_split_up import PerformersToSplitUp
         sheet = self.interface.get_sheet(self.SHEET_WHITELIST['performers_to_split_up'])
         return PerformersToSplitUp(
+            sheet=sheet,
+            skip_done=skip_done,
+        )
+
+    def performer_urls(self, skip_done: bool = True):
+        """
+        Args:
+            skip_done - Skip rows and/or cells that are marked as done.
+        """
+        from .sheets.performer_urls import PerformerURLs
+        sheet = self.interface.get_sheet(self.SHEET_WHITELIST['performer_urls'])
+        return PerformerURLs(
             sheet=sheet,
             skip_done=skip_done,
         )

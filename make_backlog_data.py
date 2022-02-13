@@ -35,6 +35,8 @@ def get_data():
     performers_to_split_up = api.performers_to_split_up()
     print('>>> Duplicate Performers')
     duplicate_performers = api.duplicate_performers()
+    print('>>> Performer URLs')
+    performer_urls = api.performer_urls()
 
     print('processing information...')
 
@@ -138,6 +140,14 @@ def get_data():
         for dup in p['duplicates']:
             dup_performer = performers.setdefault(dup, {})
             dup_performer['duplicate_of'] = main_id
+
+    for p_id, urls in performer_urls:
+        performer = performers.setdefault(p_id, {})
+        if 'urls' in performer:
+            print(f'WARNING: Duplicate Performer URLs entry found: {p_id}')
+            continue
+        performer['name'] = next((u['name'] for u in urls))
+        performer['urls'] = [u['url'] for u in urls]
 
     return scenes, performers, submitted
 

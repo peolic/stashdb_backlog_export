@@ -108,3 +108,9 @@ class PerformersToSplitUpItem(_PerformersToSplitUpItemOptional, TypedDict):
     name: str
     id: str
     shards: List[SplitShard]
+
+class PerformerURLItem(TypedDict):
+    url: str
+    name: str
+
+PerformerURLsDict = Dict[str, List[PerformerURLItem]]
