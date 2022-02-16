@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from ..base import BacklogBase
 from ..classes import Sheet, SheetRow
 from ..models import SceneFingerprintsDict, SceneFingerprintsItem
-from ..utils import is_uuid
+from ..utils import is_uuid, parse_duration
 
 
 class SceneFingerprints(BacklogBase):
@@ -47,16 +47,23 @@ class SceneFingerprints(BacklogBase):
             else:
                 last_seen[scene_id] = row.num
 
-            if algorithm not in ('phash', 'oshash', 'md5'):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid algorithm')
-                continue
+            if algorithm == 'duration':
+                duration = parse_duration(fp_hash)
+                if duration is None:
+                    print(f'Row {row.num:<4} | WARNING: Skipped due to invalid duration')
+                    continue
+                fp_hash = str(duration)
 
-            if (
-                re.fullmatch(r'^[a-f0-9]+$', fp_hash) is None
-                or algorithm in ('phash', 'oshash') and len(fp_hash) != 16
-                or algorithm == 'md5' and len(fp_hash) != 32
-            ):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid hash')
+            elif algorithm in ('phash', 'oshash', 'md5'):
+                if (
+                    re.fullmatch(r'^[a-f0-9]+$', fp_hash) is None
+                    or algorithm in ('phash', 'oshash') and len(fp_hash) != 16
+                    or algorithm == 'md5' and len(fp_hash) != 32
+                ):
+                    print(f'Row {row.num:<4} | WARNING: Skipped due to invalid hash')
+                    continue
+            else:
+                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid algorithm')
                 continue
 
             if not is_uuid(scene_id):

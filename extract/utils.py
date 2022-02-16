@@ -16,6 +16,19 @@ def is_uuid(text: str) -> bool:
     return UUID_PATTERN.fullmatch(text) is not None
 
 
+def parse_duration(text: Optional[str]) -> Optional[int]:
+    if not text:
+        return None
+    try:
+        parts = text.split(':')
+    except AttributeError:
+        return None
+
+    parts[0:0] = ('0',) * (3 - len(parts))
+    (hours, minutes, seconds) = [int(i) for i in parts]
+    return hours * 3600 + minutes * 60 + seconds
+
+
 def parse_stashdb_url(url: str) -> Tuple[Optional[str], Optional[str]]:
     if match := STASHDB_UUID_PATTERN.search(url):
         return match.group(1), match.group(2)

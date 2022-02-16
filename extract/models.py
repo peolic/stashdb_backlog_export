@@ -83,7 +83,7 @@ class _SceneFingerprintsItemOptional(TypedDict, total=False):
     user: str
 
 class SceneFingerprintsItem(_SceneFingerprintsItemOptional, TypedDict):
-    algorithm: str
+    algorithm: Literal['phash', 'oshash', 'md5', 'duration']
     hash: str
     correct_scene_id: Optional[str]
 

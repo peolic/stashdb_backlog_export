@@ -5,7 +5,7 @@ from typing import Dict, List, NamedTuple, Optional
 from ..base import BacklogBase
 from ..classes import Sheet, SheetRow
 from ..models import SceneChangeFieldType, SceneChangeItem, SceneFixesDict
-from ..utils import is_uuid
+from ..utils import is_uuid, parse_duration
 
 
 class SceneFixes(BacklogBase):
@@ -140,16 +140,9 @@ class SceneFixes(BacklogBase):
     @staticmethod
     def _transform_new_data(field: SceneChangeFieldType, value: Optional[str]) -> Optional[str]:
         if field == 'duration':
-            if not value:
-                raise ValueError
-            try:
-                parts = value.split(':')
-            except AttributeError:
-                raise ValueError
-
-            parts[0:0] = ('0',) * (3 - len(parts))
-            (hours, minutes, seconds) = [int(i) for i in parts]
-            return str(hours * 3600 + minutes * 60 + seconds)
+            if duration := parse_duration(value):
+                return str(duration)
+            raise ValueError
 
         if field == 'studio_id':
             if value == 'missing':
