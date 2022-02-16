@@ -39,7 +39,7 @@ class PerformerURLs(BacklogBase):
 
             last_row = last_seen.get(p_id, None)
             if last_row and row.num > (last_row + 1):
-                print(f'Row {row.num:<4} | WARNING: Ungrouped entries for scene ID {p_id!r} last seen row {last_row}')
+                print(f'Row {row.num:<4} | WARNING: Ungrouped entries for performer ID {p_id!r} last seen row {last_row}')
             else:
                 last_seen[p_id] = row.num
 
