@@ -80,10 +80,11 @@ class DuplicatePerformersItem(_DuplicatePerformersItemOptional, TypedDict):
 
 
 class _SceneFingerprintsItemOptional(TypedDict, total=False):
+    duration: int
     user: str
 
 class SceneFingerprintsItem(_SceneFingerprintsItemOptional, TypedDict):
-    algorithm: Literal['phash', 'oshash', 'md5', 'duration']
+    algorithm: Literal['phash', 'oshash', 'md5']
     hash: str
     correct_scene_id: Optional[str]
 

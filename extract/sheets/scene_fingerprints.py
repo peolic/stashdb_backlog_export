@@ -18,6 +18,7 @@ class SceneFingerprints(BacklogBase):
         self.column_algorithm = sheet.get_column_index(re.compile('Algorithm'))
         self.column_fingerprint = sheet.get_column_index(re.compile('Fingerprint'))
         self.column_correct_scene_id = sheet.get_column_index(re.compile('Correct Scene ID'))
+        self.column_duration = sheet.get_column_index(re.compile('Duration'))
         self.column_user = sheet.get_column_index(re.compile('Added by'))
 
         self.data = self._parse(sheet.rows)
@@ -35,6 +36,7 @@ class SceneFingerprints(BacklogBase):
             algorithm: str = row.cells[self.column_algorithm].value.strip()
             fp_hash: str = row.cells[self.column_fingerprint].value.strip()
             correct_scene_id: Optional[str] = row.cells[self.column_correct_scene_id].value.strip() or None
+            duration: str = row.cells[self.column_duration].value.strip()
             user: str = row.cells[self.column_user].value.strip()
 
             # useless row
@@ -47,23 +49,18 @@ class SceneFingerprints(BacklogBase):
             else:
                 last_seen[scene_id] = row.num
 
-            if algorithm == 'duration':
-                duration = parse_duration(fp_hash)
-                if duration is None:
-                    print(f'Row {row.num:<4} | WARNING: Skipped due to invalid duration')
-                    continue
-                fp_hash = str(duration)
-
-            elif algorithm in ('phash', 'oshash', 'md5'):
-                if (
-                    re.fullmatch(r'^[a-f0-9]+$', fp_hash) is None
-                    or algorithm in ('phash', 'oshash') and len(fp_hash) != 16
-                    or algorithm == 'md5' and len(fp_hash) != 32
-                ):
-                    print(f'Row {row.num:<4} | WARNING: Skipped due to invalid hash')
-                    continue
+            if algorithm in ('phash', 'oshash', 'md5'):
+                pass  # Pylance acting up when using `not in`
             else:
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid algorithm')
+                continue
+
+            if (
+                re.fullmatch(r'^[a-f0-9]+$', fp_hash) is None
+                or algorithm in ('phash', 'oshash') and len(fp_hash) != 16
+                or algorithm == 'md5' and len(fp_hash) != 32
+            ):
+                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid hash')
                 continue
 
             if not is_uuid(scene_id):
@@ -78,11 +75,18 @@ class SceneFingerprints(BacklogBase):
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid correct scene ID')
                 continue
 
+            duration_s = parse_duration(duration) if duration else None
+            if duration and duration_s is None:
+                print(f'Row {row.num:<4} | WARNING: Invalid duration: {duration}')
+
             item = SceneFingerprintsItem(
                 algorithm=algorithm,
                 hash=fp_hash,
                 correct_scene_id=correct_scene_id,
             )
+
+            if duration_s:
+                item['duration'] = duration_s
 
             if self.with_user and user:
                 item['user'] = user
