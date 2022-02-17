@@ -24,8 +24,15 @@ class PerformerURLs(BacklogBase):
         last_seen: Dict[str, int] = {}
 
         for row in rows:
+            try:
+                submitted = row.is_done(1)
+                done = row.is_done(2)
+            except row.CheckboxNotFound:
+                submitted = False
+                done = row.is_done()
+
             # already processed
-            if self.skip_done and row.is_done():
+            if self.skip_done and done:
                 continue
 
             name = row.cells[self.column_name].value.strip()
