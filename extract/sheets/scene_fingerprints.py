@@ -57,7 +57,7 @@ class SceneFingerprints(BacklogBase):
 
             if (
                 re.fullmatch(r'^[a-f0-9]+$', fp_hash) is None
-                or algorithm in ('phash', 'oshash') and len(fp_hash) != 16
+                or algorithm in ('phash', 'oshash') and len(fp_hash) != 16 and fp_hash != '0'
                 or algorithm == 'md5' and len(fp_hash) != 32
             ):
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid hash')
