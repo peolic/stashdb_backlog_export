@@ -43,7 +43,11 @@ class DuplicatePerformers(BacklogBase):
         item: DuplicatePerformersItem
 
     def _transform_row(self, row: SheetRow) -> RowResult:
-        done = row.is_done()
+        try:
+            done = row.is_done()
+        except row.CheckboxNotFound as error:
+            print(error)
+            done = False
 
         cell_name = row.cells[self.column_name]
         cells_duplicates = row.cells[self.column_main_id + 1:]

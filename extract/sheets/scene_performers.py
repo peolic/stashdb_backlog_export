@@ -139,7 +139,11 @@ class ScenePerformers(BacklogBase):
             done = row.is_done(2)
         except row.CheckboxNotFound:
             submitted = False
-            done = row.is_done()
+            try:
+                done = row.is_done()
+            except row.CheckboxNotFound as error:
+                print(error)
+                done = False
 
         remove_cells = [c for i, c in enumerate(row.cells) if i in self.columns_remove]
         append_cells = [c for i, c in enumerate(row.cells) if i in self.columns_append]

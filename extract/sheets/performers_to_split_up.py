@@ -44,7 +44,11 @@ class PerformersToSplitUp(BacklogBase):
         item: PerformersToSplitUpItem
 
     def _transform_row(self, row: SheetRow) -> RowResult:
-        done = row.is_done()
+        try:
+            done = row.is_done()
+        except row.CheckboxNotFound as error:
+            print(error)
+            done = False
 
         cells_shards = [c for i, c in enumerate(row.cells) if i in self.columns_shards]
 

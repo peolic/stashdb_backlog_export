@@ -28,8 +28,14 @@ class SceneFingerprints(BacklogBase):
         last_seen: Dict[str, int] = {}
 
         for row in rows:
+            try:
+                done = row.is_done()
+            except row.CheckboxNotFound as error:
+                print(error)
+                done = False
+
             # already processed
-            if self.skip_done and row.is_done():
+            if self.skip_done and done:
                 continue
 
             scene_id: str = row.cells[self.column_scene_id].value.strip()

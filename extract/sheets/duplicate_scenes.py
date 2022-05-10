@@ -39,7 +39,11 @@ class DuplicateScenes(BacklogBase):
         item: DuplicateScenesItem
 
     def _transform_row(self, row: SheetRow) -> RowResult:
-        done = row.is_done()
+        try:
+            done = row.is_done()
+        except row.CheckboxNotFound as error:
+            print(error)
+            done = False
 
         category: str = row.cells[self.column_category].value.strip()
         studio: str = row.cells[self.column_studio].value.strip()

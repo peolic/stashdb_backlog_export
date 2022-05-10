@@ -60,7 +60,11 @@ class SceneFixes(BacklogBase):
             done = row.is_done(2)
         except row.CheckboxNotFound:
             submitted = False
-            done = row.is_done()
+            try:
+                done = row.is_done()
+            except row.CheckboxNotFound as error:
+                print(error)
+                done = False
 
         scene_id: str = row.cells[self.column_scene_id].value.strip()
         field: str = row.cells[self.column_field].value.strip()

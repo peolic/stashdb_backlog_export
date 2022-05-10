@@ -29,7 +29,11 @@ class PerformerURLs(BacklogBase):
                 done = row.is_done(2)
             except row.CheckboxNotFound:
                 submitted = False
-                done = row.is_done()
+                try:
+                    done = row.is_done()
+                except row.CheckboxNotFound as error:
+                    print(error)
+                    done = False
 
             # already processed
             if self.skip_done and done:
