@@ -17,7 +17,7 @@ def is_uuid(text: str) -> bool:
 
 
 def parse_duration(text: Optional[str]) -> Optional[int]:
-    if not text:
+    if not text or text == '-':
         return None
     try:
         parts = text.split(':')
