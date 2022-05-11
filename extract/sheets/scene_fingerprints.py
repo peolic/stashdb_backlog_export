@@ -81,9 +81,12 @@ class SceneFingerprints(BacklogBase):
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid correct scene ID')
                 continue
 
-            duration_s = parse_duration(duration) if duration else None
-            if duration and duration_s is None:
-                print(f'Row {row.num:<4} | WARNING: Invalid duration: {duration}')
+            if not duration or duration == '-':
+                duration_s = None
+            else:
+                duration_s = parse_duration(duration)
+                if duration_s is None:
+                    print(f'Row {row.num:<4} | WARNING: Invalid duration: {duration}')
 
             item = SceneFingerprintsItem(
                 algorithm=algorithm,
