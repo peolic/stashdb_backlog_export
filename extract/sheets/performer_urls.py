@@ -35,10 +35,6 @@ class PerformerURLs(BacklogBase):
                     print(error)
                     done = False
 
-            # already processed
-            if self.skip_done and done:
-                continue
-
             name = row.cells[self.column_name].value.strip()
             p_id = row.cells[self.column_p_id].value.strip()
             url  = row.cells[self.column_url].value.strip()
@@ -46,6 +42,12 @@ class PerformerURLs(BacklogBase):
 
             # useless row
             if not (p_id and url and name):
+                continue
+
+            # already processed
+            if self.skip_done and done:
+                if last_seen.get(p_id, None):
+                    last_seen[p_id] = row.num
                 continue
 
             last_row = last_seen.get(p_id, None)
