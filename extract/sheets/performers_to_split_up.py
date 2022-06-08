@@ -2,6 +2,7 @@
 import re
 import string
 from typing import List, NamedTuple, Optional
+from urllib.parse import urlsplit
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
@@ -107,6 +108,11 @@ class PerformersToSplitUp(BacklogBase):
                     if obj == 'performers' and uuid:
                         p_id = uuid
                         continue
+
+                # Remove unuseful automated links
+                urlparts = urlsplit(url)
+                if urlparts.scheme == 'http' and urlparts.path == '/':
+                    continue
 
                 links.append(url)
 
