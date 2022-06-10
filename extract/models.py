@@ -40,6 +40,7 @@ SceneChangeFieldType = Literal[
     'details',
     'date',
     'studio_id',
+    'code',
     'director',
     'duration',
     'image',

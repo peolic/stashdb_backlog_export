@@ -130,6 +130,8 @@ class SceneFixes(BacklogBase):
             return 'date'
         if field == 'Studio ID':
             return 'studio_id'
+        if field == 'Studio Code':
+            return 'code'
         if field == 'Director':
             return 'director'
         if field == 'Duration':
