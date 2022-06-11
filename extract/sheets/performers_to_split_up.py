@@ -56,7 +56,8 @@ class PerformersToSplitUp(BacklogBase):
         name: str = row.cells[self.column_name].value.strip()
         p_id: str = row.cells[self.column_p_id].value.strip()
         user: str = row.cells[self.column_user].value.strip()
-        notes: str = row.cells[self.column_notes].value.strip()
+        notes_c   = row.cells[self.column_notes]
+        notes: str = notes_c.value.strip()
         shards = self._get_shards(cells_shards, row.num)
 
         if p_id and not is_uuid(p_id):
@@ -68,6 +69,13 @@ class PerformersToSplitUp(BacklogBase):
         notes_lines = list(filter(str.strip, notes.splitlines(False)))
         if notes_lines:
             item['notes'] = notes_lines
+
+        notes_links = list(dict.fromkeys(
+            l for l in notes_c.links
+            if not notes_lines or l not in notes_lines
+        ))
+        if notes_links:
+            item['links'] = notes_links
 
         if user:
             item['user'] = user

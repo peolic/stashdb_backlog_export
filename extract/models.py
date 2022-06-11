@@ -105,6 +105,7 @@ class SplitShard(_SplitShardOptional, TypedDict):
 class _PerformersToSplitUpItemOptional(TypedDict, total=False):
     user: str
     notes: List[str]
+    links: List[str]
 
 class PerformersToSplitUpItem(_PerformersToSplitUpItemOptional, TypedDict):
     name: str
