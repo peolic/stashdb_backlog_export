@@ -9,21 +9,22 @@ import cssutils
 import requests
 
 from ..classes import Sheet, SheetCell, SheetRow
+from .base import InterfaceBase
 
 
-class HTMLInterface:
+class HTMLInterface(InterfaceBase['LegacySheet']):
 
     def __init__(self, spreadsheet_id: str, sheet_ids: List[int]):
+        super(HTMLInterface, self).__init__()
+
         print('fetching HTML spreadsheet...')
         resp = requests.get(f'https://docs.google.com/spreadsheets/d/{spreadsheet_id}/htmlview')
         resp.raise_for_status()
 
         soup = bs4.BeautifulSoup(resp.text, 'html.parser')
 
-        self._sheets = {
-            sheet_id: LegacySheet.parse(soup=soup, sheet_id=sheet_id)
-            for sheet_id in sheet_ids
-        }
+        for sheet_id in sheet_ids:
+            self._sheets[sheet_id] = LegacySheet.parse(soup=soup, sheet_id=sheet_id)
 
     def get_sheet(self, sheet_id: int):
         return self._sheets[sheet_id]
