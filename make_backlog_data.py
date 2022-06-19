@@ -158,6 +158,7 @@ def main():
     target_path = script_dir / 'backlog_data'
     scenes_target = target_path / 'scenes'
     performers_target = target_path / 'performers'
+    submitted_target = target_path / 'submitted.json'
 
     scenes, performers, submitted = get_data()
 
@@ -201,6 +202,10 @@ def main():
         performer_path.parent.mkdir(parents=True, exist_ok=True)
         performer_data = with_sorted_toplevel_keys(performer)
         performer_path.write_bytes(json.dumps(performer_data, indent=2).encode('utf-8'))
+
+    submitted_target.unlink(missing_ok=True)
+    submitted_data = dict(scenes=list(submitted))
+    submitted_target.write_bytes(json.dumps(submitted_data, indent=2).encode('utf-8'))
 
     print('done')
 
