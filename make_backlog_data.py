@@ -192,7 +192,7 @@ def main():
         scene_path = scenes_target / make_object_path(scene_id)
         scene_path.parent.mkdir(parents=True, exist_ok=True)
         scene_data = with_sorted_toplevel_keys(scene)
-        scene_path.write_bytes(json.dumps(scene_data, indent=2).encode('utf-8'))
+        scene_path.write_bytes(dump_data(scene_data))
 
     with suppress(FileNotFoundError):
         rmtree(performers_target)
@@ -201,13 +201,17 @@ def main():
         performer_path = performers_target / make_object_path(performer_id)
         performer_path.parent.mkdir(parents=True, exist_ok=True)
         performer_data = with_sorted_toplevel_keys(performer)
-        performer_path.write_bytes(json.dumps(performer_data, indent=2).encode('utf-8'))
+        performer_path.write_bytes(dump_data(performer_data))
 
     submitted_target.unlink(missing_ok=True)
     submitted_data = dict(scenes=list(submitted))
-    submitted_target.write_bytes(json.dumps(submitted_data, indent=2).encode('utf-8'))
+    submitted_target.write_bytes(dump_data(submitted_data))
 
     print('done')
+
+
+def dump_data(data: Any) -> bytes:
+    return json.dumps(data, indent=2).encode('utf-8')
 
 
 def filter_empty(it: Iterable[str]) -> List[str]:
@@ -282,11 +286,10 @@ class CompactJSONEncoder(json.JSONEncoder):
         elif isinstance(o, float):  # Use scientific notation for floats, where appropiate
             return format(o, "g")
         elif isinstance(o, str):
-            # escape newlines
-            o = o.replace("\n", "\\n")
-            # escape quotes
-            o = o.replace('"', '\\"')
-            return f'"{o}"'
+            if self.ensure_ascii:
+                return json.encoder.py_encode_basestring_ascii(o)
+            else:
+                return json.encoder.py_encode_basestring(o)
         else:
             return json.dumps(o)
 
