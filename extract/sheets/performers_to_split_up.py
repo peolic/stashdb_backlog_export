@@ -82,7 +82,7 @@ class PerformersToSplitUp(BacklogBase):
 
         return self.RowResult(row.num, done, item)
 
-    LABELS_PATTERN = re.compile(r'\[?((?:stashdb|(?<=\[)stash(?=\]))|iafd|i(?:nde)?xxx|thenude|twitter|gevi)\]?', re.I)
+    LABELS_PATTERN = re.compile(r'\[?((?:stashdb|(?<=\[)stash(?=\]))|iafd|i(?:nde)?xxx|thenude|d(?:ata)?18|twitter|gevi)\]?', re.I)
 
     def _get_shards(self, cells: List[SheetCell], row_num: int) -> List[SplitShard]:
         results: List[SplitShard] = []
