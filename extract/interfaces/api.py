@@ -16,6 +16,8 @@ class DataInterface(InterfaceBase[Sheet]):
         'sheets.data.rowData.values.effectiveFormat.textFormat.strikethrough',
         'sheets.data.rowData.values.hyperlink',
         'sheets.data.rowData.values.textFormatRuns.format.link',
+        'sheets.data.rowData.values.textFormatRuns.format.strikethrough',
+        'sheets.data.rowData.values.textFormatRuns.startIndex',
         'sheets.data.rowData.values.note',
     ]
 

@@ -1,7 +1,8 @@
 # coding: utf-8
 import re
+import string
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 
@@ -14,24 +15,47 @@ class SheetCell:
 
     @classmethod
     def parse(cls, cell: dict):
+        value: str = cell.get('formattedValue', '')
+        note: str = cell.get('note', '')
+        done: bool = cell.get('effectiveFormat', {}).get('textFormat', {}).get('strikethrough', False)
+
+        format_runs: List[Dict[str, Any]] = cell.get('textFormatRuns', [])
+
         links: List[str] = []
-        for fr in cell.get('textFormatRuns', []):
+        for fr in format_runs:
             if link := fr['format'].get('link', {}).get('uri'):
                 if urlparse(link).netloc:
                     links.append(link)
+
+        # Text can appear strike-through but effective format says not due to line breaks
+        if not done and format_runs:
+            done = all((
+                (fr['format'].get('strikethrough', False)
+                 or value[fr.get('startIndex', 0)] in string.whitespace)
+                for fr in format_runs
+            ))
+
+        # Mark strike-through text
+        if not done:
+            start: Optional[int] = None
+            for fr in reversed(format_runs):
+                end = start
+                start = fr.get('startIndex', None)
+                if not fr['format'].get('strikethrough', False):
+                    continue
+                value = ''.join((
+                    value[:start] if start is not None else '',
+                    '\u0002',
+                    value[start:end],
+                    '\u0003',
+                    value[end:] if end is not None else '',
+                ))
 
         link: Optional[str] = cell.get('hyperlink')
         if link and urlparse(link).netloc:
             links.append(link)
 
-        done = cell.get('effectiveFormat', {}).get('textFormat', {}).get('strikethrough', False)
-
-        return cls(
-            value=cell.get('formattedValue', ''),
-            links=links,
-            note=cell.get('note', ''),
-            done=done,
-        )
+        return cls(value=value, links=links, note=note, done=done)
 
     @property
     def first_link(self) -> Optional[str]:
@@ -151,10 +175,12 @@ interface DataStructure {
                     formattedValue?: string
                     hyperlink?: string
                     textFormatRuns?: Array<{
+                        startIndex?: number
                         format: {
                             link?: {
                                 uri: string
                             }
+                            strikethrough?: boolean
                         }
                     }>
                     note?: string
