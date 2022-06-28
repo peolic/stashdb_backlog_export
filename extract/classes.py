@@ -31,11 +31,13 @@ class SheetCell:
 
         # Text can appear strike-through but effective format says not due to line breaks
         if not done and format_runs:
-            done = all((
-                (fr['format'].get('strikethrough', False)
-                 or value[fr.get('startIndex', 0)] in string.whitespace)
-                for fr in format_runs
-            ))
+            # FIXME: second condition broken
+            # done = all((
+            #     (fr['format'].get('strikethrough', False)
+            #      or value[fr.get('startIndex', 0)] in string.whitespace)
+            #     for fr in format_runs
+            # ))
+            done = all((fr['format'].get('strikethrough', False) for fr in format_runs))
 
         # Mark strike-through text
         if not done:
