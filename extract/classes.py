@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
+strikethrough_pattern = re.compile(r'(~+)([^~]+)\1')
+
 
 @dataclass
 class SheetCell:
@@ -58,6 +60,8 @@ class SheetCell:
                     '\u0003',
                     value[end:] if end is not None else '',
                 ))
+
+            note = strikethrough_pattern.sub('\u0002\\2\u0003', note)
 
         link: Optional[str] = cell.get('hyperlink')
         if link and urlparse(link).netloc:
