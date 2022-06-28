@@ -92,12 +92,12 @@ class SceneFingerprintsItem(_SceneFingerprintsItemOptional, TypedDict):
 SceneFingerprintsDict = Dict[str, List[SceneFingerprintsItem]]
 
 
-class _SplitShardOptional(TypedDict, total=False):
+class _SplitFragmentOptional(TypedDict, total=False):
     text: str
     notes: List[str]
     links: List[str]
 
-class SplitShard(_SplitShardOptional, TypedDict):
+class SplitFragment(_SplitFragmentOptional, TypedDict):
     raw: str
     id: Optional[str]
     name: str
@@ -110,7 +110,7 @@ class _PerformersToSplitUpItemOptional(TypedDict, total=False):
 class PerformersToSplitUpItem(_PerformersToSplitUpItemOptional, TypedDict):
     name: str
     id: str
-    shards: List[SplitShard]
+    fragments: List[SplitFragment]
 
 class PerformerURLItem(TypedDict):
     url: str

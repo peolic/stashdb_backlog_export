@@ -123,8 +123,15 @@ def get_data():
             print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
             continue
         item.pop('user', None)
-        for shard in item['shards']:
-            shard.pop('raw', None)
+        for fragment in item['fragments']:
+            fragment.pop('raw', None)
+        # FIXME: remove - backwards compatibility
+        item['shards'] = item.pop('fragments')  # type: ignore
+        # FIXME: remove - keeps original key order
+        with suppress(KeyError):
+            item['notes'] = item.pop('notes')
+        with suppress(KeyError):
+            item['links'] = item.pop('links')
         performer['split'] = item
 
     for p in duplicate_performers:
