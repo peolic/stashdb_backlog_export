@@ -43,6 +43,14 @@ class SheetCell:
                 start = fr.get('startIndex', None)
                 if not fr['format'].get('strikethrough', False):
                     continue
+
+                # Prevent line breaks after start / before end
+                if len(value[start:end]) > 1:
+                    if start is not None and value[start] == '\n':
+                        start += 1
+                    if end is not None and value[end-1] == '\n':
+                        end -= 1
+
                 value = ''.join((
                     value[:start] if start is not None else '',
                     '\u0002',
