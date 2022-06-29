@@ -19,15 +19,27 @@ class DuplicateScenes(BacklogBase):
 
     def _parse(self, rows: List[SheetRow]) -> List[DuplicateScenesItem]:
         data: List[DuplicateScenesItem] = []
+
+        seen: List[int] = []
+
         for row in rows:
             row = self._transform_row(row)
 
             # already processed
             if row.done:
                 continue
+
+            main_id = row.item['main_id']
+            duplicate_ids = row.item['duplicates']
             # useless row
-            if not row.item['main_id'] or not row.item['duplicates']:
+            if not main_id or not duplicate_ids:
                 continue
+
+            compare = hash(frozenset((main_id, *duplicate_ids)))
+            if compare in seen:
+                print(f'Row {row.num:<4} | WARNING: Skipping duplicate entry for scene ID: {main_id}')
+                continue
+            seen.append(compare)
 
             data.append(row.item)
 
