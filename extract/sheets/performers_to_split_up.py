@@ -1,6 +1,5 @@
 # coding: utf-8
 import re
-import string
 from typing import List, NamedTuple, Optional
 from urllib.parse import urlsplit
 
@@ -83,7 +82,9 @@ class PerformersToSplitUp(BacklogBase):
 
         return self.RowResult(row.num, done, item)
 
+    LINE_PATTERN = re.compile(r'^([\u0002\u0003])?[ \t-]+|[ \t-]+([\u0002\u0003])?$')
     LABELS_PATTERN = re.compile(r'\[?((?:stashdb|(?<=\[)stash(?=\]))|iafd|i(?:nde)?xxx|thenude|d(?:ata)?18|twitter|gevi)\]?', re.I)
+    CLEAR_LABELS_PATTERN = re.compile(rf'(-\s+)?{LABELS_PATTERN.pattern}', re.I)
 
     def _get_fragments(self, cells: List[SheetCell], row_num: int) -> List[SplitFragment]:
         results: List[SplitFragment] = []
@@ -130,16 +131,15 @@ class PerformersToSplitUp(BacklogBase):
             tokens: List[str] = []
             possible_name = ''
             for l in value.splitlines(False):
-                l = l.strip('-' + string.whitespace)
+                l = self.LINE_PATTERN.sub(r'\1\2', l)
                 if not l:
                     continue
 
                 if not possible_name:
-                    possible_name = re.sub(rf'(-\s+)?{self.LABELS_PATTERN.pattern}', '', l, flags=re.I).strip()
+                    possible_name = self.CLEAR_LABELS_PATTERN.sub('', l).strip()
                     continue
 
                 for t in l.split(' '):
-                    t = t.strip('-' + string.whitespace)
                     if not t:
                         continue
                     if self.LABELS_PATTERN.fullmatch(t):
