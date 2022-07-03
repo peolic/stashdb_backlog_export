@@ -96,6 +96,7 @@ class _SplitFragmentOptional(TypedDict, total=False):
     text: str
     notes: List[str]
     links: List[str]
+    done: bool
 
 class SplitFragment(_SplitFragmentOptional, TypedDict):
     raw: str

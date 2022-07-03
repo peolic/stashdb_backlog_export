@@ -11,8 +11,9 @@ from ..utils import URL_PATTERN, is_uuid, parse_stashdb_url
 
 
 class PerformersToSplitUp(BacklogBase):
-    def __init__(self, sheet: Sheet, skip_done: bool):
-        self.skip_done = skip_done
+    def __init__(self, sheet: Sheet, skip_done_rows: bool, skip_done_fragments: bool):
+        self.skip_done = skip_done_rows
+        self.skip_done_fragments = skip_done_fragments
 
         self.column_name = sheet.get_column_index('Performer')
         self.column_p_id = sheet.get_column_index(re.compile('Performer ID'))
@@ -95,7 +96,7 @@ class PerformersToSplitUp(BacklogBase):
                 continue
 
             # skip completed
-            if cell.done:
+            if cell.done and self.skip_done_fragments:
                 continue
                 print(f'Row {row_num:<4} | skipped completed fragment {fragment_num}: {value}')
 
@@ -149,6 +150,7 @@ class PerformersToSplitUp(BacklogBase):
 
             fragment = SplitFragment(
                 raw=value,
+                **(dict(done=cell.done) if cell.done else dict()),
                 id=p_id,
                 name=possible_name
             )
