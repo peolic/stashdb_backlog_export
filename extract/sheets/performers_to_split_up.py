@@ -82,89 +82,93 @@ class PerformersToSplitUp(BacklogBase):
 
         return self.RowResult(row.num, done, item)
 
-    LINE_PATTERN = re.compile(r'^([\u0002\u0003])?[ \t-]+|[ \t-]+([\u0002\u0003])?$')
-    LABELS_PATTERN = re.compile(r'\[?((?:stashdb|(?<=\[)stash(?=\]))|iafd|i(?:nde)?xxx|thenude|d(?:ata)?18|twitter|gevi)\]?', re.I)
-    CLEAR_LABELS_PATTERN = re.compile(rf'(-\s+)?{LABELS_PATTERN.pattern}', re.I)
-
     def _get_fragments(self, cells: List[SheetCell], row_num: int) -> List[SplitFragment]:
         results: List[SplitFragment] = []
 
-        for fragment_num, cell in enumerate(cells, 1):
-            value = cell.value.strip()
-
+        for cell_num, cell in enumerate(cells, 1):
             # skip empty
-            if not value:
+            if not cell.value.strip():
                 continue
 
             # skip completed
             if cell.done and self.skip_done_fragments:
                 continue
-                print(f'Row {row_num:<4} | skipped completed fragment {fragment_num}: {value}')
+                print(f'Row {row_num:<4} | skipped completed fragment {cell_num}: {cell.value}')
 
-            note_links: List[str] = []
-            notes = list(filter(str.strip, cell.note.splitlines()))
-            for note in notes[:]:
-                if url_match := URL_PATTERN.match(note):
-                    note_links.append(url_match.group(1))
-                    notes.remove(note)
-
-            p_id: Optional[str] = None
-            links: List[str] = []
-
-            for url in cell.links + note_links:
-                if not p_id:
-                    # Extract performer ID from url, if exists
-                    obj, uuid = parse_stashdb_url(url)
-                    if obj == 'performers' and uuid:
-                        p_id = uuid
-                        continue
-
-                # Remove unuseful automated links
-                urlparts = urlsplit(url)
-                if urlparts.scheme == 'http' and urlparts.path == '/':
-                    continue
-
-                links.append(url)
-
-            links[:] = list(dict.fromkeys(links))
-
-            tokens: List[str] = []
-            possible_name = ''
-            for l in value.splitlines(False):
-                l = self.LINE_PATTERN.sub(r'\1\2', l)
-                if not l:
-                    continue
-
-                if not possible_name:
-                    possible_name = self.CLEAR_LABELS_PATTERN.sub('', l).strip()
-                    continue
-
-                for t in l.split(' '):
-                    if not t:
-                        continue
-                    if self.LABELS_PATTERN.fullmatch(t):
-                        continue
-                    tokens.append(t)
-
-            text = ' '.join(tokens)
-
-            fragment = SplitFragment(
-                raw=value,
-                **(dict(done=cell.done) if cell.done else dict()),
-                id=p_id,
-                name=possible_name
-            )
-
-            if text:
-                fragment['text'] = text
-            if notes:
-                fragment['notes'] = notes
-            if links:
-                fragment['links'] = links
-
-            results.append(fragment)
+            if fragment := self._parse_fragment_cell(cell):
+                results.append(fragment)
 
         return results
+
+    LINE_PATTERN = re.compile(r'^([\u0002\u0003])?[ \t-]+|[ \t-]+([\u0002\u0003])?$')
+    LABELS_PATTERN = re.compile(r'\[?((?:stashdb|(?<=\[)stash(?=\]))|iafd|i(?:nde)?xxx|thenude|d(?:ata)?18|twitter|gevi)\]?', re.I)
+    CLEAR_LABELS_PATTERN = re.compile(rf'(-\s+)?{LABELS_PATTERN.pattern}', re.I)
+
+    def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
+        value = cell.value.strip()
+
+        note_links: List[str] = []
+        notes = list(filter(str.strip, cell.note.splitlines()))
+        for note in notes[:]:
+            if url_match := URL_PATTERN.match(note):
+                note_links.append(url_match.group(1))
+                notes.remove(note)
+
+        p_id: Optional[str] = None
+        links: List[str] = []
+
+        for url in cell.links + note_links:
+            if not p_id:
+                # Extract performer ID from url, if exists
+                obj, uuid = parse_stashdb_url(url)
+                if obj == 'performers' and uuid:
+                    p_id = uuid
+                    continue
+
+            # Remove unuseful automated links
+            urlparts = urlsplit(url)
+            if urlparts.scheme == 'http' and urlparts.path == '/':
+                continue
+
+            links.append(url)
+
+        links[:] = list(dict.fromkeys(links))
+
+        tokens: List[str] = []
+        possible_name = ''
+        for l in value.splitlines(False):
+            l = self.LINE_PATTERN.sub(r'\1\2', l)
+            if not l:
+                continue
+
+            if not possible_name:
+                possible_name = self.CLEAR_LABELS_PATTERN.sub('', l).strip()
+                continue
+
+            for t in l.split(' '):
+                if not t:
+                    continue
+                if self.LABELS_PATTERN.fullmatch(t):
+                    continue
+                tokens.append(t)
+
+        text = ' '.join(tokens)
+
+        fragment = SplitFragment(
+            raw=value,
+            **(dict(done=cell.done) if cell.done else dict()),
+            id=p_id,
+            name=possible_name
+        )
+
+        if text:
+            fragment['text'] = text
+        if notes:
+            fragment['notes'] = notes
+        if links:
+            fragment['links'] = links
+
+        return fragment
 
     def sort_key(self, item: PerformersToSplitUpItem):
         # Performer name, ASC
