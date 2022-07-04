@@ -101,13 +101,19 @@ class PerformersToSplitUp(BacklogBase):
         return results
 
     LIST_PATTERN = re.compile(r'^([\u0002\u0003])?- ')
-    LABELS_PATTERN = re.compile(r'(- )? *\[(stash(db)?|iafd|i(nde)?xxx|thenude|d(ata)?18|twitter|gevi)\]', re.I)
+    LABELS_PATTERN = re.compile(r'(- )? *\[(stash(db)?|iafd|i(nde)?xxx|thenude|d(ata)?18|twitter|gevi)\d?\]', re.I)
 
     def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
         value = cell.value.strip()
         lines = value.splitlines()
 
-        name = self.LABELS_PATTERN.sub('', lines.pop(0)).strip()
+        first_line = lines.pop(0)
+        if not lines and (labels := list(self.LABELS_PATTERN.finditer(first_line))):
+            name = first_line[:labels[0].start()]
+            lines = [first_line[labels[-1].end():]]
+        else:
+            name = self.LABELS_PATTERN.sub('', first_line)
+        name = name.strip() or '[no name provided]'
 
         cleaned: List[str] = []
         for line in lines:
