@@ -102,7 +102,7 @@ class PerformersToSplitUp(BacklogBase):
                 print(f'Row {row_num:<4} | skipped completed fragment {fragment_num}: {value}')
 
             note_links: List[str] = []
-            notes = list(filter(str.strip, cell.note.split('\n')))
+            notes = list(filter(str.strip, cell.note.splitlines()))
             for note in notes[:]:
                 if url_match := URL_PATTERN.match(note):
                     note_links.append(url_match.group(1))

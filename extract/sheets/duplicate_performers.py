@@ -52,7 +52,7 @@ class DuplicatePerformers(BacklogBase):
         cell_name = row.cells[self.column_name]
         cells_duplicates = row.cells[self.column_main_id + 1:]
 
-        notes = list(filter(str.strip, cell_name.note.split('\n')))
+        notes = list(filter(str.strip, cell_name.note.splitlines()))
 
         name: str = cell_name.value.strip()
         main_id: str = row.cells[self.column_main_id].value.strip()
