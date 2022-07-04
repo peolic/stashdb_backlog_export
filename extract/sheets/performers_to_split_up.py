@@ -100,19 +100,39 @@ class PerformersToSplitUp(BacklogBase):
 
         return results
 
-    LINE_PATTERN = re.compile(r'^([\u0002\u0003])?[ \t-]+|[ \t-]+([\u0002\u0003])?$')
-    LABELS_PATTERN = re.compile(r'\[?((?:stashdb|(?<=\[)stash(?=\]))|iafd|i(?:nde)?xxx|thenude|d(?:ata)?18|twitter|gevi)\]?', re.I)
-    CLEAR_LABELS_PATTERN = re.compile(rf'(-\s+)?{LABELS_PATTERN.pattern}', re.I)
+    LIST_PATTERN = re.compile(r'^([\u0002\u0003])?- ')
+    LABELS_PATTERN = re.compile(r'(- )? *\[(stash(db)?|iafd|i(nde)?xxx|thenude|d(ata)?18|twitter|gevi)\]', re.I)
 
     def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
         value = cell.value.strip()
+        lines = value.splitlines()
+
+        name = self.LABELS_PATTERN.sub('', lines.pop(0)).strip()
+
+        cleaned: List[str] = []
+        for line in lines:
+            if line := self.LABELS_PATTERN.sub('', line).strip():
+                cleaned.append(line)
+
+        text: str = ''
+        notes: List[str] = []
+
+        if cleaned:
+            text = cleaned[0]
+            # '\n- ...\n- ...'
+            if cleaned[1:] and self.LIST_PATTERN.match(text):
+                text = ''
+                notes = cleaned
+            else:
+                text = self.LIST_PATTERN.sub(r'\1', text)
+                notes = cleaned[1:]
 
         note_links: List[str] = []
-        notes = list(filter(str.strip, cell.note.splitlines()))
-        for note in notes[:]:
+        for note in filter(str.strip, cell.note.splitlines()):
             if url_match := URL_PATTERN.match(note):
                 note_links.append(url_match.group(1))
-                notes.remove(note)
+            else:
+                notes.append(note)
 
         p_id: Optional[str] = None
         links: List[str] = []
@@ -134,31 +154,11 @@ class PerformersToSplitUp(BacklogBase):
 
         links[:] = list(dict.fromkeys(links))
 
-        tokens: List[str] = []
-        possible_name = ''
-        for l in value.splitlines(False):
-            l = self.LINE_PATTERN.sub(r'\1\2', l)
-            if not l:
-                continue
-
-            if not possible_name:
-                possible_name = self.CLEAR_LABELS_PATTERN.sub('', l).strip()
-                continue
-
-            for t in l.split(' '):
-                if not t:
-                    continue
-                if self.LABELS_PATTERN.fullmatch(t):
-                    continue
-                tokens.append(t)
-
-        text = ' '.join(tokens)
-
         fragment = SplitFragment(
             raw=value,
             **(dict(done=cell.done) if cell.done else dict()),
             id=p_id,
-            name=possible_name
+            name=name,
         )
 
         if text:
