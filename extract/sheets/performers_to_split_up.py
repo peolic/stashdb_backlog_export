@@ -18,7 +18,7 @@ class PerformersToSplitUp(BacklogBase):
         self.column_p_id = sheet.get_column_index(re.compile('Performer ID'))
         self.column_user = sheet.get_column_index(re.compile('Added by'))
         self.column_notes = sheet.get_column_index(re.compile('Notes'))
-        self.columns_fragments = sheet.get_all_column_indices(re.compile(r'Performer \d'))
+        self.columns_fragments = sheet.get_all_column_indices(re.compile(r'(Performer|Fragment) \d'))
 
         self.data = self._parse(sheet.rows)
 
