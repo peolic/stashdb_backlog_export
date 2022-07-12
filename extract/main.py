@@ -30,8 +30,8 @@ def main():
         data.write(paths.path_scene_fingerprints)
         print(f'Success: {len(data)} scene entries')
 
-    def main_performers_to_split_up():
-        data = api.performers_to_split_up()
+    def main_performers_to_split_up(**kwargs):
+        data = api.performers_to_split_up(**kwargs)
         data.write(paths.path_performers_to_split_up)
         print(f'Success: {len(data)} performer entries')
 
@@ -69,8 +69,16 @@ def main():
     subparsers.add_parser(name='sfp', help="Scene Fingerprints") \
         .set_defaults(main_method=main_scene_fingerprints)
 
-    subparsers.add_parser(name='ps', help="Performers To Split Up") \
-        .set_defaults(main_method=main_performers_to_split_up)
+    ps_parser = subparsers.add_parser(name='ps', help="Performers To Split Up")
+    ps_parser.set_defaults(main_method=main_performers_to_split_up)
+    ps_parser.add_argument(
+        '-d', '--include-done', dest='skip_done_rows', action='store_false',
+        help="Skip items that are marked as completed",
+    )
+    ps_parser.add_argument(
+        '-df', '--include-done-fragments', dest='skip_done_fragments', action='store_false',
+        help="Skip fragments that are marked as completed",
+    )
 
     subparsers.add_parser(name='pu', help="Performer URLs") \
         .set_defaults(main_method=main_performer_urls)
