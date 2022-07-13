@@ -1,0 +1,4 @@
+# legacy HTML extractor
+beautifulsoup4==4.10.0
+cssutils==2.3.0
+soupsieve==2.3.1
