@@ -6,9 +6,8 @@ from typing import Dict, List, Literal, Optional, Tuple
 from .models import AnyPerformerEntry, ScenePerformersItem
 from .paths import script_dir
 
-_uuid = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-UUID_PATTERN = re.compile(_uuid)
-STASHDB_UUID_PATTERN = re.compile(r'/([a-z]+)/(' + _uuid + r')')
+UUID_PATTERN = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+STASHDB_UUID_PATTERN = re.compile(rf'/([a-z]+)/({UUID_PATTERN.pattern})')
 URL_PATTERN = re.compile(r'(https?://[^\s]+)')
 
 
