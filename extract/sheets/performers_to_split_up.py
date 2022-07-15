@@ -122,23 +122,24 @@ class PerformersToSplitUp(BacklogBase):
 
         text: str = ''
         notes: List[str] = []
-
-        if cleaned:
-            text = cleaned[0]
-            # '\n- ...\n- ...'
-            if cleaned[1:] and self.LIST_PATTERN.match(text):
-                text = ''
-                notes = cleaned
-            else:
-                text = self.LIST_PATTERN.sub(r'\1', text)
-                notes = cleaned[1:]
-
         note_links: List[str] = []
+
         for note in filter(str.strip, cell.note.splitlines()):
             if url_match := URL_PATTERN.match(note):
                 note_links.append(url_match.group(1))
             else:
                 notes.append(note)
+
+        if cleaned:
+            text = cleaned[0]
+            # '\n- ...\n- ...'
+            # /or/ (text) '\n- ...' + (note) '- ...\n- ...'
+            if (rest := cleaned[1:] + notes) and all(map(self.LIST_PATTERN.match, (text, rest[0]))):
+                text = ''
+                notes[0:0] = cleaned
+            else:
+                text = self.LIST_PATTERN.sub(r'\1', text)
+                notes[0:0] = cleaned[1:]
 
         p_id: Optional[str] = None
         links: List[str] = []
