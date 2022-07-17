@@ -26,7 +26,7 @@ class SheetCell:
         links: List[str] = []
         for fr in format_runs:
             if link := fr['format'].get('link', {}).get('uri'):
-                if urlparse(link).netloc:
+                if urlparse(link).netloc and link not in links:
                     links.append(link)
 
         # Text can appear strike-through but effective format says not due to line breaks
@@ -66,7 +66,7 @@ class SheetCell:
             note = strikethrough_pattern.sub('\u0002\\2\u0003', note)
 
         link: Optional[str] = cell.get('hyperlink')
-        if link and urlparse(link).netloc:
+        if link and urlparse(link).netloc and link not in links:
             links.append(link)
 
         return cls(value=value, links=links, note=note, done=done)
