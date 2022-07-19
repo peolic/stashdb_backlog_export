@@ -9,6 +9,20 @@ from ..models import PerformersToSplitUpItem, SplitFragment
 from ..utils import URL_PATTERN, is_uuid, parse_stashdb_url
 
 
+def compile_labels_pattern():
+    labels = '|'.join([
+        r'stash(db)?',
+        r'iafd',
+        r'i(nde)?xxx',
+        r'(the)?nude',
+        r'[be]gafd',
+        r'd(ata)?18',
+        r'gevi',
+        r'adt',
+    ])
+    return re.compile(rf'(- )? *\[({labels})( ?\d)?\]', re.I)
+
+
 class PerformersToSplitUp(BacklogBase):
     def __init__(self, sheet: Sheet, skip_done_rows: bool, skip_done_fragments: bool):
         self.skip_done = skip_done_rows
@@ -101,7 +115,7 @@ class PerformersToSplitUp(BacklogBase):
         return results
 
     LIST_PATTERN = re.compile(r'^([\u0002\u0003])?- ')
-    LABELS_PATTERN = re.compile(r'(- )? *\[(stash(db)?|iafd|i(nde)?xxx|thenude|[be]gafd|d(ata)?18|twitter|gevi|adt)\d?\]', re.I)
+    LABELS_PATTERN = compile_labels_pattern()
 
     def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
         value = cell.value.strip()
