@@ -52,6 +52,7 @@ class SheetCell:
                 if len(value[start:end]) > 1:
                     if start is not None and value[start] == '\n':
                         start += 1
+                        fr['startIndex'] = start
                     if end is not None and value[end-1] == '\n':
                         end -= 1
 
