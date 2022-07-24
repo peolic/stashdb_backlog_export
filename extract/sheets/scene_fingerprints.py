@@ -34,10 +34,6 @@ class SceneFingerprints(BacklogBase):
                 print(error)
                 done = False
 
-            # already processed
-            if self.skip_done and done:
-                continue
-
             scene_id: str = row.cells[self.column_scene_id].value.strip()
             algorithm: str = row.cells[self.column_algorithm].value.strip()
             fp_hash: str = row.cells[self.column_fingerprint].value.strip()
@@ -45,11 +41,18 @@ class SceneFingerprints(BacklogBase):
             duration: str = row.cells[self.column_duration].value.strip()
             user: str = row.cells[self.column_user].value.strip()
 
+            last_row = last_seen.get(scene_id, None)
+
+            # already processed
+            if self.skip_done and done:
+                if last_row:
+                    last_seen[scene_id] = row.num
+                continue
+
             # useless row
             if not (scene_id and algorithm and fp_hash):
                 continue
 
-            last_row = last_seen.get(scene_id, None)
             if last_row and row.num > (last_row + 1):
                 print(f'Row {row.num:<4} | WARNING: Ungrouped entries for scene ID {scene_id!r} last seen row {last_row}')
             else:

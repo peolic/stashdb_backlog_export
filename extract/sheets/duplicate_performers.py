@@ -1,6 +1,6 @@
 # coding: utf-8
 import re
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Optional
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
@@ -61,8 +61,9 @@ class DuplicatePerformers(BacklogBase):
         user: str = row.cells[self.column_user].value.strip()
 
         if main_id and not is_uuid(main_id):
-            print(f"Row {row.num:<4} | WARNING: Invalid main performer UUID: '{main_id}'")
-            main_id = None  # type: ignore
+            if main_id != '-':
+                print(f"Row {row.num:<4} | WARNING: Invalid main performer UUID: '{main_id}'")
+            main_id = ''
 
         item = DuplicatePerformersItem(
             name=name,

@@ -64,8 +64,9 @@ class DuplicateScenes(BacklogBase):
         user: str = row.cells[self.column_user].value.strip()
 
         if main_id and not is_uuid(main_id):
-            print(f"Row {row.num:<4} | WARNING: Invalid main scene UUID: '{main_id}'")
-            main_id = None  # type: ignore
+            if main_id != '-':
+                print(f"Row {row.num:<4} | WARNING: Invalid main scene UUID: '{main_id}'")
+            main_id = ''
 
         item: DuplicateScenesItem = { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates }
 
