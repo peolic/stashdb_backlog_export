@@ -151,9 +151,8 @@ class Sheet:
         ]
 
         col_count = len(self.columns)
-        offset = self.frozen_row_count if self.frozen_row_count else 0
-        for num, row in enumerate(row_data[data_row:], 1):
-            row_obj = SheetRow.parse(row['values'], num + offset, fill=col_count)
+        for num, row in enumerate(row_data[data_row:], (self.frozen_row_count or 0) + 1):
+            row_obj = SheetRow.parse(row['values'], num, fill=col_count)
             self.rows.append(row_obj)
 
         # noop
