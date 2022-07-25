@@ -78,7 +78,7 @@ def format_studio(item: ScenePerformersItem) -> Optional[str]:
 def get_env() -> Dict[str, str]:
     env: Dict[str, str] = {}
     try:
-        dotenv = Path(script_dir / '../.env').read_text()
+        dotenv = Path(script_dir / '.env').read_text()
     except FileNotFoundError:
         return env
 

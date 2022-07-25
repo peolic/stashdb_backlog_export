@@ -1,11 +1,12 @@
 from pathlib import Path
 
-script_dir = Path(__file__).parent
+module_dir = Path(__file__).resolve().parent
+script_dir = module_dir.parent
 
-path_scene_performers = (script_dir / '../scene_performers.json').resolve()
-path_scene_fixes = (script_dir / '../scene_fixes.json').resolve()
-path_duplicate_scenes = (script_dir / '../duplicate_scenes.json').resolve()
-path_duplicate_performers = (script_dir / '../duplicate_performers.json').resolve()
-path_scene_fingerprints = (script_dir / '../scene_fingerprints.json').resolve()
-path_performers_to_split_up = (script_dir / '../performers_to_split_up.json').resolve()
-path_performer_urls = (script_dir / '../performer_urls.json').resolve()
+path_scene_performers = module_dir / 'scene_performers.json'
+path_scene_fixes = module_dir / 'scene_fixes.json'
+path_duplicate_scenes = module_dir / 'duplicate_scenes.json'
+path_duplicate_performers = module_dir / 'duplicate_performers.json'
+path_scene_fingerprints = module_dir / 'scene_fingerprints.json'
+path_performers_to_split_up = module_dir / 'performers_to_split_up.json'
+path_performer_urls = module_dir / 'performer_urls.json'
