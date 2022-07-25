@@ -11,15 +11,22 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Dict, Iterable, List, Union
 
-from extract import BacklogExtractor
-from extract.utils import get_google_api_key
-
 TAnyDict = Dict[str, Any]
 TCacheData = Dict[str, TAnyDict]
+
+script_dir = Path(__file__).resolve().parent
+
+target_path = script_dir / 'backlog_data'
+scenes_target = target_path / 'scenes'
+performers_target = target_path / 'performers'
+submitted_target = target_path / 'submitted.json'
 
 
 def get_data():
     print('fetching information...')
+
+    from extract import BacklogExtractor
+    from extract.utils import get_google_api_key
 
     api = BacklogExtractor(api_key=get_google_api_key())
 
@@ -160,23 +167,10 @@ def get_data():
 
 
 def main():
-    script_dir = Path(__file__).parent
-
-    target_path = script_dir / 'backlog_data'
-    scenes_target = target_path / 'scenes'
-    performers_target = target_path / 'performers'
-    submitted_target = target_path / 'submitted.json'
-
     scenes, performers, submitted = get_data()
 
     CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
     CACHE_ONLY = 'cache' in sys.argv[1:]
-
-    def cache_to_json(data: TAnyDict) -> bytes:
-        indent = None if CI else 2
-        separators = (',', ':') if CI else None
-        cls = None if CI else CompactJSONEncoder
-        return json.dumps(data, indent=indent, separators=separators, cls=cls).encode('utf-8')
 
     cache_target = script_dir
     if CACHE_ONLY:
@@ -188,7 +182,7 @@ def main():
 
     if CI or CACHE_ONLY:
         cache_data = export_cache_format(dict(scenes=scenes, performers=performers), submitted=submitted)
-        (cache_target / 'stashdb_backlog.json').write_bytes(cache_to_json(cache_data))
+        (cache_target / 'stashdb_backlog.json').write_bytes(cache_to_json(cache_data, CI))
         if CACHE_ONLY:
             return
 
@@ -221,6 +215,13 @@ def dump_data(data: Any) -> bytes:
     return json.dumps(data, indent=2).encode('utf-8')
 
 
+def cache_to_json(data: TAnyDict, minify: bool) -> bytes:
+    indent = None if minify else 2
+    separators = (',', ':') if minify else None
+    cls = None if minify else CompactJSONEncoder
+    return json.dumps(data, indent=indent, separators=separators, cls=cls).encode('utf-8')
+
+
 def filter_empty(it: Iterable[str]) -> List[str]:
     return list(filter(str.strip, it))
 
@@ -249,6 +250,7 @@ def export_cache_format(objects: Dict[str, TCacheData], submitted: TAnyDict):
     data['submitted'] = (  # type: ignore
         list(submitted))
     return data
+
 
 # https://gist.github.com/jannismain/e96666ca4f059c3e5bc28abb711b5c92
 class CompactJSONEncoder(json.JSONEncoder):
