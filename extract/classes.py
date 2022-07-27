@@ -1,6 +1,7 @@
 # coding: utf-8
 import re
 import string
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
@@ -55,6 +56,11 @@ class SheetCell:
                         fr['startIndex'] = start
                     if end is not None and value[end-1] == '\n':
                         end -= 1
+
+                # Remove struckthrough link
+                if st_link := fr['format'].get('link', {}).get('uri'):
+                    with suppress(ValueError):
+                        links.remove(st_link)
 
                 value = ''.join((
                     value[:start] if start is not None else '',
