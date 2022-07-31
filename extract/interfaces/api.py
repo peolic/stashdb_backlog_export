@@ -58,7 +58,6 @@ class DataInterface(InterfaceBase[Sheet]):
             details = '.' if data else f': {resp.text}'
             raise Exception('Request failed' + details)
 
-
         for sheet in data['sheets']:
             obj = Sheet.parse(sheet)
             if obj.id not in sheet_ids:

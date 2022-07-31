@@ -1,15 +1,18 @@
 #!/usr/bin/env python3.8
 # coding: utf-8
+import io
 import json
 import os
 import re
 import sys
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 from datetime import datetime, timedelta
 from operator import itemgetter
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, TextIO, Union
+
+from logger import Message
 
 TAnyDict = Dict[str, Any]
 TCacheData = Dict[str, TAnyDict]
@@ -21,8 +24,45 @@ scenes_target = target_path / 'scenes'
 performers_target = target_path / 'performers'
 submitted_target = target_path / 'submitted.json'
 
+class Unbuffered:
+    def __init__(self, stream: TextIO, buffer: io.StringIO):
+        self.stream = stream
+        self.buffer = buffer
 
-def get_data():
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+        self.buffer.write(data)
+
+    @property
+    def output(self):
+        return self.buffer.getvalue()
+
+
+@contextmanager
+def report_errors(ci: bool):
+    old_stdout = sys.stdout
+    new_stdout = Unbuffered(old_stdout, io.StringIO())
+    sys.stdout = new_stdout
+
+    try:
+        yield
+    finally:
+        sys.stdout = old_stdout
+
+    if not ci:
+        return
+
+    if new_stdout.output:
+        level = 'notice'
+        if 'WARNING:' in new_stdout.output:
+            level = 'warning'
+        if 'ERROR' in new_stdout.output:
+            level = 'error'
+        print(Message(level, new_stdout.output))
+
+
+def get_data(ci: bool = False):
     print('fetching information...')
 
     from extract import BacklogExtractor
@@ -31,19 +71,26 @@ def get_data():
     api = BacklogExtractor(api_key=get_google_api_key())
 
     print('>>> Scene-Performers')
-    scene_performers = api.scene_performers(skip_no_id=False)
+    with report_errors(ci):
+        scene_performers = api.scene_performers(skip_no_id=False)
     print('>>> Scene Fixes')
-    scene_fixes = api.scene_fixes()
+    with report_errors(ci):
+        scene_fixes = api.scene_fixes()
     print('>>> Scene Fingerprints')
-    scene_fingerprints = api.scene_fingerprints(skip_no_correct_scene=False)
+    with report_errors(ci):
+        scene_fingerprints = api.scene_fingerprints(skip_no_correct_scene=False)
     print('>>> Duplicate Scenes')
-    duplicate_scenes = api.duplicate_scenes()
+    with report_errors(ci):
+        duplicate_scenes = api.duplicate_scenes()
     print('>>> Performers To Split Up')
-    performers_to_split_up = api.performers_to_split_up()
+    with report_errors(ci):
+        performers_to_split_up = api.performers_to_split_up()
     print('>>> Duplicate Performers')
-    duplicate_performers = api.duplicate_performers()
+    with report_errors(ci):
+        duplicate_performers = api.duplicate_performers()
     print('>>> Performer URLs')
-    performer_urls = api.performer_urls()
+    with report_errors(ci):
+        performer_urls = api.performer_urls()
 
     print('processing information...')
 
@@ -127,7 +174,7 @@ def get_data():
         p_id = item.pop('id')
         performer = performers.setdefault(p_id, {})
         if 'split' in performer:
-            print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
+            print(Message('warning', f'Duplicate Performers-To-Split-Up entry found: {p_id}'))
             continue
         item.pop('user', None)
         for fragment in item['fragments']:
@@ -145,7 +192,7 @@ def get_data():
         main_id = p['main_id']
         performer = performers.setdefault(main_id, {})
         if 'duplicates' in performer:
-            print(f'WARNING: Duplicate "Duplicate Performers" entry found: {main_id}')
+            print(Message('warning', f'Duplicate "Duplicate Performers" entry found: {main_id}'))
             continue
         duplicates = performer['duplicates'] = {}
         duplicates['ids'] = p['duplicates'][:]
@@ -158,7 +205,7 @@ def get_data():
     for p_id, urls in performer_urls:
         performer = performers.setdefault(p_id, {})
         if 'urls' in performer:
-            print(f'WARNING: Duplicate Performer URLs entry found: {p_id}')
+            print(Message('warning', f'Duplicate Performer URLs entry found: {p_id}'))
             continue
         performer['name'] = next((u['name'] for u in urls))
         performer['urls'] = [u['url'] for u in urls]
@@ -167,10 +214,10 @@ def get_data():
 
 
 def main():
-    scenes, performers, submitted = get_data()
-
     CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
     CACHE_ONLY = 'cache' in sys.argv[1:]
+
+    scenes, performers, submitted = get_data(CI)
 
     cache_target = script_dir
     if CACHE_ONLY:
