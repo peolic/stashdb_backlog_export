@@ -72,8 +72,9 @@ class SceneFingerprints(BacklogBase):
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid hash')
                 continue
 
+            # invalid scene id
             if not is_uuid(scene_id):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID')
+                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID: {scene_id}')
                 continue
 
             if self.skip_no_correct_scene and not correct_scene_id:
@@ -81,8 +82,8 @@ class SceneFingerprints(BacklogBase):
                 continue
 
             if correct_scene_id and not is_uuid(correct_scene_id):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid correct scene ID')
-                continue
+                print(f'Row {row.num:<4} | WARNING: Ignored invalid correct scene ID: {correct_scene_id}')
+                correct_scene_id = None
 
             if not duration or duration == '-':
                 duration_s = None

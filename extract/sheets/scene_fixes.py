@@ -40,8 +40,10 @@ class SceneFixes(BacklogBase):
             # empty row or error
             if not row.scene_id or not row.change:
                 continue
+
             # invalid scene id
             if not is_uuid(row.scene_id):
+                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID: {row.scene_id}')
                 continue
 
             data.setdefault(row.scene_id, []).append(row.change)

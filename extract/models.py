@@ -100,6 +100,7 @@ class PerformersToSplitUpItem(TypedDict):
     notes: NotRequired[List[str]]
     links: NotRequired[List[str]]
 
+
 class PerformerURLItem(TypedDict):
     url: str
     name: str

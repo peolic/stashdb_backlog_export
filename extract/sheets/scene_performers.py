@@ -56,9 +56,12 @@ class ScenePerformers(BacklogBase):
             # empty row
             if not scene_id:
                 continue
-            # skip anything else
+
+            # invalid scene id
             if not is_uuid(scene_id):
+                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID: {scene_id}')
                 continue
+
             # no changes
             if len(all_entries) == 0:
                 print(f'Row {row.num:<4} | WARNING: Skipped due to no changes.')
