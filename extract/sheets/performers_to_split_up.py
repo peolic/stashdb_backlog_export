@@ -75,7 +75,7 @@ class PerformersToSplitUp(BacklogBase):
         fragments = self._get_fragments(cells_fragments, row.num)
 
         if p_id and not is_uuid(p_id):
-            print(f"Row {row.num:<4} | WARNING: Invalid performer UUID: '{p_id}'")
+            print(f"Row {row.num:<4} | WARNING: Invalid performer ID: '{p_id}'")
             p_id = None  # type: ignore
 
         item = PerformersToSplitUpItem(name=name, id=p_id, fragments=fragments)

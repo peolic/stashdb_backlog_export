@@ -136,7 +136,8 @@ def get_data(ci: bool = False):
         p_id = item.pop('id')
         performer = performers.setdefault(p_id, {})
         if 'split' in performer:
-            print(Message('warning', f'Duplicate Performers-To-Split-Up entry found: {p_id}'))
+            with report_errors(ci):
+                print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
             continue
         item.pop('user', None)
         for fragment in item['fragments']:
@@ -154,7 +155,8 @@ def get_data(ci: bool = False):
         main_id = p['main_id']
         performer = performers.setdefault(main_id, {})
         if 'duplicates' in performer:
-            print(Message('warning', f'Duplicate "Duplicate Performers" entry found: {main_id}'))
+            with report_errors(ci):
+                print(f'WARNING: Duplicate "Duplicate Performers" entry found: {main_id}')
             continue
         duplicates = performer['duplicates'] = {}
         duplicates['ids'] = p['duplicates'][:]
@@ -167,7 +169,8 @@ def get_data(ci: bool = False):
     for p_id, urls in performer_urls:
         performer = performers.setdefault(p_id, {})
         if 'urls' in performer:
-            print(Message('warning', f'Duplicate Performer URLs entry found: {p_id}'))
+            with report_errors(ci):
+                print(f'WARNING: Duplicate Performer URLs entry found: {p_id}')
             continue
         performer['name'] = next((u['name'] for u in urls))
         performer['urls'] = [u['url'] for u in urls]

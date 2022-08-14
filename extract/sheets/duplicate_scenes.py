@@ -65,7 +65,7 @@ class DuplicateScenes(BacklogBase):
 
         if main_id and not is_uuid(main_id):
             if main_id != '-':
-                print(f"Row {row.num:<4} | WARNING: Invalid main scene UUID: '{main_id}'")
+                print(f"Row {row.num:<4} | WARNING: Invalid main scene ID: '{main_id}'")
             main_id = ''
 
         item: DuplicateScenesItem = { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates }

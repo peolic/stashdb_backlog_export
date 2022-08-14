@@ -62,7 +62,7 @@ class DuplicatePerformers(BacklogBase):
 
         if main_id and not is_uuid(main_id):
             if main_id != '-':
-                print(f"Row {row.num:<4} | WARNING: Invalid main performer UUID: '{main_id}'")
+                print(f"Row {row.num:<4} | WARNING: Invalid main performer ID: '{main_id}'")
             main_id = ''
 
         item = DuplicatePerformersItem(
