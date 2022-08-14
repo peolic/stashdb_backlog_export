@@ -1,18 +1,17 @@
 #!/usr/bin/env python3.8
 # coding: utf-8
-import io
 import json
 import os
 import re
 import sys
-from contextlib import contextmanager, suppress
+from contextlib import suppress
 from datetime import datetime, timedelta
 from operator import itemgetter
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Dict, Iterable, List, TextIO, Union
+from typing import Any, Dict, Iterable, List, Union
 
-from logger import Message
+from logger import report_errors
 
 TAnyDict = Dict[str, Any]
 TCacheData = Dict[str, TAnyDict]
@@ -23,43 +22,6 @@ target_path = script_dir / 'backlog_data'
 scenes_target = target_path / 'scenes'
 performers_target = target_path / 'performers'
 submitted_target = target_path / 'submitted.json'
-
-class Unbuffered:
-    def __init__(self, stream: TextIO, buffer: io.StringIO):
-        self.stream = stream
-        self.buffer = buffer
-
-    def write(self, data):
-        self.stream.write(data)
-        self.stream.flush()
-        self.buffer.write(data)
-
-    @property
-    def output(self):
-        return self.buffer.getvalue()
-
-
-@contextmanager
-def report_errors(ci: bool):
-    old_stdout = sys.stdout
-    new_stdout = Unbuffered(old_stdout, io.StringIO())
-    sys.stdout = new_stdout
-
-    try:
-        yield
-    finally:
-        sys.stdout = old_stdout
-
-    if not ci:
-        return
-
-    if new_stdout.output:
-        level = 'notice'
-        if 'WARNING:' in new_stdout.output:
-            level = 'warning'
-        if 'ERROR' in new_stdout.output:
-            level = 'error'
-        print(Message(level, new_stdout.output))
 
 
 def get_data(ci: bool = False):
