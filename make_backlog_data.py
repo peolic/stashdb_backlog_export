@@ -224,7 +224,7 @@ def main():
 
 
 def dump_data(data: Any) -> bytes:
-    return json.dumps(data, indent=2).encode('utf-8')
+    return json.dumps(data, indent=2).encode('utf-8') + b'\n'
 
 
 def cache_to_json(data: TAnyDict, minify: bool) -> bytes:
