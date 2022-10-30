@@ -11,7 +11,7 @@ class BacklogExtractor:
         'duplicate_performers': 651710198,
         'duplicate_scenes': 1879471751,
         'scene_fingerprints': 357846927,
-        # 'performer_urls': 1209918135,
+        'performer_urls': 1209918135,
     }
 
     def __init__(self, api_key: Optional[str]):

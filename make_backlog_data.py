@@ -50,9 +50,9 @@ def get_data(ci: bool = False):
     print('>>> Duplicate Performers')
     with report_errors(ci):
         duplicate_performers = api.duplicate_performers()
-    # print('>>> Performer URLs')
-    # with report_errors(ci):
-    #     performer_urls = api.performer_urls()
+    print('>>> Performer URLs')
+    with report_errors(ci):
+        performer_urls = api.performer_urls()
 
     print('processing information...')
 
@@ -166,14 +166,14 @@ def get_data(ci: bool = False):
             dup_performer = performers.setdefault(dup, {})
             dup_performer['duplicate_of'] = main_id
 
-    # for p_id, urls in performer_urls:
-    #     performer = performers.setdefault(p_id, {})
-    #     if 'urls' in performer:
-    #         with report_errors(ci):
-    #             print(f'WARNING: Duplicate Performer URLs entry found: {p_id}')
-    #         continue
-    #     performer['name'] = next((u['name'] for u in urls))
-    #     performer['urls'] = [u['url'] for u in urls]
+    for p_id, urls in performer_urls:
+        performer = performers.setdefault(p_id, {})
+        if 'urls' in performer:
+            with report_errors(ci):
+                print(f'WARNING: Duplicate Performer URLs entry found: {p_id}')
+            continue
+        performer['name'] = next((u['name'] for u in urls))
+        performer['urls'] = [u['url'] for u in urls]
 
     return scenes, performers, submitted
 
