@@ -24,7 +24,10 @@ class HTMLInterface(InterfaceBase['LegacySheet']):
         soup = bs4.BeautifulSoup(resp.text, 'html.parser')
 
         for sheet_id in sheet_ids:
-            self._sheets[sheet_id] = LegacySheet.parse(soup=soup, sheet_id=sheet_id)
+            try:
+                self._sheets[sheet_id] = LegacySheet.parse(soup=soup, sheet_id=sheet_id)
+            except Exception as error:
+                raise Exception(f'Failed to parse sheet ({sheet_id})') from error
 
     def get_sheet(self, sheet_id: int):
         return self._sheets[sheet_id]
@@ -113,6 +116,10 @@ class LegacySheet(Sheet):
         )
 
         all_rows = sheet.select('tbody > tr')
+
+        # if frozen row is not set (== 0), fail
+        if not self.frozen_row_count:
+            raise ValueError(f'Frozen Row Count is undefined ({self.frozen_row_count})')
 
         # if frozen row is not set (== 0), default to head=0, data=1
         head_row = (self.frozen_row_count - 1) if self.frozen_row_count else 0

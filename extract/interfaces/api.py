@@ -59,10 +59,20 @@ class DataInterface(InterfaceBase[Sheet]):
             raise Exception('Request failed' + details)
 
         for sheet in data['sheets']:
-            obj = Sheet.parse(sheet)
+            try:
+                obj = Sheet.parse(sheet)
+            except Exception as error:
+                sheet_index = data['sheets'].index(sheet)
+                raise Exception(f'Failed to parse sheet #{sheet_index}') from error
+
             if obj.id not in sheet_ids:
                 continue
-            obj.parse_data(sheet)
+
+            try:
+                obj.parse_data(sheet)
+            except Exception as error:
+                raise Exception(f'Failed to parse sheet "{obj.title}" ({obj.id})') from error
+
             self._sheets[obj.id] = obj
 
     class MissingAPIKey(Exception):

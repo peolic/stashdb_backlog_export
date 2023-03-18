@@ -125,8 +125,8 @@ class Sheet:
     title: str
     row_count: int
     column_count: int
-    frozen_row_count: Optional[int]
-    frozen_column_count: Optional[int]
+    frozen_row_count: int
+    frozen_column_count: int
     columns: List[str] = field(default_factory=list, repr=False)
     rows: List[SheetRow] = field(default_factory=list, repr=False)
 
@@ -140,12 +140,16 @@ class Sheet:
             title=props['title'],
             row_count=grid_props['rowCount'],
             column_count=grid_props['columnCount'],
-            frozen_row_count=grid_props.get('frozenRowCount'),
-            frozen_column_count=grid_props.get('frozenColumnCount'),
+            frozen_row_count=grid_props.get('frozenRowCount', 0),
+            frozen_column_count=grid_props.get('frozenColumnCount', 0),
         )
 
     def parse_data(self, sheet: dict):
         row_data = sheet['data'][0]['rowData']
+
+        # if frozen row is not set (== 0), fail
+        if not self.frozen_row_count:
+            raise ValueError(f'Frozen Row Count is undefined ({self.frozen_row_count})')
 
         # if frozen row is not set (== 0), default to head=0, data=1
         head_row = (self.frozen_row_count - 1) if self.frozen_row_count else 0
