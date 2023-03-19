@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3.11
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import TCPServer

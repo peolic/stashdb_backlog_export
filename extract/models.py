@@ -1,6 +1,4 @@
-from typing import Dict, List, Literal, Optional, Union
-
-from typing_extensions import NotRequired, TypedDict
+from typing import Dict, List, Literal, NotRequired, Optional, TypedDict, Union
 
 class _PerformerEntryCommon(TypedDict):
     name: str
