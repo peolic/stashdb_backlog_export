@@ -1,7 +1,8 @@
 #!/usr/bin/env python3.11
 # coding: utf-8
-import json
 from typing import Dict, List
+
+import yaml
 
 from make_backlog_data import (
     TCacheData,
@@ -18,15 +19,15 @@ def get_data():
     print('collecting information...')
 
     scenes: TCacheData = {
-        fp.stem: json.loads(fp.read_bytes())
-        for fp in scenes_target.glob('*/*.json')
+        fp.stem: yaml.safe_load(fp.read_bytes())
+        for fp in scenes_target.glob('*/*.yml')
     }
     performers: TCacheData = {
-        fp.stem: json.loads(fp.read_bytes())
-        for fp in performers_target.glob('*/*.json')
+        fp.stem: yaml.safe_load(fp.read_bytes())
+        for fp in performers_target.glob('*/*.yml')
     }
 
-    submitted: Dict[str, List[str]] = json.loads(submitted_target.read_bytes())
+    submitted: Dict[str, List[str]] = yaml.safe_load(submitted_target.read_bytes())
 
     return scenes, performers, submitted
 

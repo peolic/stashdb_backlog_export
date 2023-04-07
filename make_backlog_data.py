@@ -11,6 +11,8 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any, Dict, Iterable, List, Union
 
+import yaml
+
 from logger import report_errors
 
 TAnyDict = Dict[str, Any]
@@ -21,7 +23,7 @@ script_dir = Path(__file__).resolve().parent
 target_path = script_dir / 'backlog_data'
 scenes_target = target_path / 'scenes'
 performers_target = target_path / 'performers'
-submitted_target = target_path / 'submitted.json'
+submitted_target = target_path / 'submitted.yml'
 
 
 def get_data(ci: bool = False):
@@ -190,7 +192,7 @@ def main():
         cache_target.mkdir(exist_ok=True)
 
     def make_object_path(uuid: str) -> str:
-        return f'{uuid[:2]}/{uuid}.json'
+        return f'{uuid[:2]}/{uuid}.yml'
 
     if CI or CACHE_ONLY:
         cache_data = export_cache_format(dict(scenes=scenes, performers=performers), submitted=submitted)
@@ -223,8 +225,15 @@ def main():
     print('done')
 
 
+class MyDumper(yaml.SafeDumper):
+    # https://stackoverflow.com/a/39681672
+
+    def increase_indent(self, flow=False, indentless=False):
+        return super(MyDumper, self).increase_indent(flow, False)
+
+
 def dump_data(data: Any) -> bytes:
-    return json.dumps(data, indent=2).encode('utf-8') + b'\n'
+    return yaml.dump(data, Dumper=MyDumper, default_flow_style=False, sort_keys=False, encoding='utf-8')
 
 
 def cache_to_json(data: TAnyDict, minify: bool) -> bytes:
