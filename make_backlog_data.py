@@ -144,13 +144,6 @@ def get_data(ci: bool = False):
         item.pop('user', None)
         for fragment in item['fragments']:
             fragment.pop('raw', None)
-        # FIXME: remove - backwards compatibility
-        item['shards'] = item.pop('fragments')  # type: ignore
-        # FIXME: remove - keeps original key order
-        with suppress(KeyError):
-            item['notes'] = item.pop('notes')
-        with suppress(KeyError):
-            item['links'] = item.pop('links')
         performer['split'] = item
 
     for p in duplicate_performers:
