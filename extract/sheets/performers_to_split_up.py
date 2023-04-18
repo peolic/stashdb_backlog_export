@@ -116,6 +116,7 @@ class PerformersToSplitUp(BacklogBase):
 
     LIST_PATTERN = re.compile(r'^([\u0002\u0003])?- ')
     LABELS_PATTERN = compile_labels_pattern()
+    ST_LINK_PATTERN = re.compile(r'\u0002' + URL_PATTERN.pattern + r'\u0003')
 
     def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
         value = cell.value.strip()
@@ -139,6 +140,10 @@ class PerformersToSplitUp(BacklogBase):
         note_links: List[str] = []
 
         for note in filter(str.strip, cell.note.splitlines()):
+            note = self.ST_LINK_PATTERN.sub('', note)
+            if not note.strip():
+                continue
+
             if url_match := URL_PATTERN.match(note):
                 note_links.append(url_match.group(1))
             else:
