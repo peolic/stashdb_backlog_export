@@ -93,3 +93,9 @@ def get_google_api_key() -> Optional[str]:
         return api_key
 
     return get_env().get('GOOGLE_API_KEY')
+
+def get_proxy() -> Optional[str]:
+    if proxy := os.environ.get('PROXY'):
+        return proxy
+
+    return get_env().get('PROXY')

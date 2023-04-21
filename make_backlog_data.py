@@ -177,6 +177,10 @@ def main():
     CI = os.environ.get('CI') == 'true' or 'ci' in sys.argv[1:]
     CACHE_ONLY = 'cache' in sys.argv[1:]
 
+    from extract.utils import get_proxy
+    if proxy := get_proxy():
+        os.environ['ALL_PROXY'] = proxy
+
     scenes, performers, submitted = get_data(CI)
 
     cache_target = script_dir

@@ -1,8 +1,9 @@
 import argparse
+import os
 from typing import Callable
 
 from . import BacklogExtractor, paths
-from .utils import get_google_api_key
+from .utils import get_google_api_key, get_proxy
 
 def main():
     def main_scene_performers(**kwargs):
@@ -91,6 +92,10 @@ def main():
     }
 
     api_key = None if args.legacy else get_google_api_key()
+
+    if proxy := get_proxy():
+        os.environ['ALL_PROXY'] = proxy
+
     api = BacklogExtractor(api_key=api_key)
 
     args.main_method(**kwargs)
