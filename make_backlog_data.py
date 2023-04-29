@@ -154,6 +154,7 @@ def get_data(ci: bool = False):
                 print(f'WARNING: Duplicate "Duplicate Performers" entry found: {main_id}')
             continue
         duplicates = performer['duplicates'] = {}
+        duplicates['name'] = p['name']
         duplicates['ids'] = p['duplicates'][:]
         if notes := p.get('notes'):
             duplicates['notes'] = notes
