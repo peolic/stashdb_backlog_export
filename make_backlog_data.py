@@ -231,7 +231,7 @@ class MyDumper(yaml.SafeDumper):
 
 
 def dump_data(data: Any) -> bytes:
-    return yaml.dump(data, Dumper=MyDumper, default_flow_style=False, sort_keys=False, encoding='utf-8')
+    return yaml.dump(data, Dumper=MyDumper, default_flow_style=False, sort_keys=False, width=130, encoding='utf-8')
 
 
 def cache_to_json(data: TAnyDict, minify: bool) -> bytes:
