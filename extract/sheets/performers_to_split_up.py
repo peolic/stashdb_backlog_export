@@ -19,6 +19,7 @@ def compile_labels_pattern():
         r'd(ata)?18',
         r'gevi',
         r'adt',
+        r'studio',
     ])
     return re.compile(rf'(- )? *\[({labels})( ?\d)?\]', re.I)
 
