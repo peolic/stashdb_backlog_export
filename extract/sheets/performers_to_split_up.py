@@ -20,6 +20,7 @@ def compile_labels_pattern():
         r'gevi',
         r'adt',
         r'studio',
+        r'scene',
     ])
     return re.compile(rf'(- )? *\[({labels})( ?\d)?\]', re.I)
 
