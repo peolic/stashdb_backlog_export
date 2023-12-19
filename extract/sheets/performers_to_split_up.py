@@ -166,7 +166,7 @@ class PerformersToSplitUp(BacklogBase):
         links: List[str] = []
 
         for url in cell.links + note_links:
-            if not p_id:
+            if not p_id and url in cell.links:
                 # Extract performer ID from url, if exists
                 obj, uuid = parse_stashdb_url(url)
                 if obj == 'performers' and uuid:
