@@ -224,7 +224,7 @@ def main():
         performer_path.write_bytes(dump_data(performer_data))
 
     submitted_target.unlink(missing_ok=True)
-    submitted_data = {k: list(v) for k, v in submitted}
+    submitted_data = {k: list(v) for k, v in submitted.items()}
     submitted_target.write_bytes(dump_data(submitted_data))
 
     print('done')
@@ -274,7 +274,7 @@ def export_cache_format(objects: Dict[str, TCacheData], submitted: TSubmitted):
     data['lastChecked'] = (  # type: ignore
         make_timestamp())
     data['submitted'] = (  # type: ignore
-        # TODO: {k: list(v) for k, v in submitted}
+        # TODO: {k: list(v) for k, v in submitted.items()}
         list(submitted['scenes']))
     return data
 
