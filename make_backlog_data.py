@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from operator import itemgetter
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Literal, Union
 
 import yaml
 
@@ -17,6 +17,7 @@ from logger import report_errors
 
 TAnyDict = Dict[str, Any]
 TCacheData = Dict[str, TAnyDict]
+TSubmitted = Dict[Literal['scenes', 'performers'], Dict[str, bool]]
 
 script_dir = Path(__file__).resolve().parent
 
@@ -59,7 +60,7 @@ def get_data(ci: bool = False):
     print('processing information...')
 
     scenes: TCacheData = {}
-    submitted: TAnyDict = {}
+    submitted: TSubmitted = dict(scenes=dict(), performers=dict())
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
     pattern_comment_delimiter = re.compile(r' ; | *\n')
@@ -98,7 +99,7 @@ def get_data(ci: bool = False):
                     comments[:] = filter_empty(dict.fromkeys(comments + filtered))
 
             if fix.get('submitted', False):
-                submitted[scene_id] = True
+                submitted['scenes'][scene_id] = True
 
     for scene_id, fingerprints in scene_fingerprints:
         change = scenes.setdefault(scene_id, {})
@@ -130,7 +131,7 @@ def get_data(ci: bool = False):
 
         change['c_studio'] = [item['studio'], item.get('parent_studio')]
         if item.get('submitted', False):
-            submitted[scene_id] = True
+            submitted['scenes'][scene_id] = True
 
     performers: TCacheData = {}
 
@@ -161,6 +162,8 @@ def get_data(ci: bool = False):
         for dup in p['duplicates']:
             dup_performer = performers.setdefault(dup, {})
             dup_performer['duplicate_of'] = main_id
+        if p.get('submitted', False):
+            submitted['performers'][main_id] = True
 
     for p_id, url_items in performer_urls:
         performer = performers.setdefault(p_id, {})
@@ -172,6 +175,8 @@ def get_data(ci: bool = False):
         performer['urls'] = [u['url'] for u in url_items]
         if notes := filter_empty(dict.fromkeys(u['text'] for u in url_items)):
             performer.setdefault('urls_notes', notes)
+        if any((u.get('submitted', False) for u in url_items)):
+            submitted['performers'][p_id] = True
 
     return scenes, performers, submitted
 
@@ -219,7 +224,7 @@ def main():
         performer_path.write_bytes(dump_data(performer_data))
 
     submitted_target.unlink(missing_ok=True)
-    submitted_data = dict(scenes=list(submitted))
+    submitted_data = {k: list(v) for k, v in submitted}
     submitted_target.write_bytes(dump_data(submitted_data))
 
     print('done')
@@ -258,7 +263,7 @@ def with_sorted_toplevel_keys(data: TAnyDict) -> TAnyDict:
     return dict(sorted(data.items(), key=itemgetter(0)))
 
 
-def export_cache_format(objects: Dict[str, TCacheData], submitted: TAnyDict):
+def export_cache_format(objects: Dict[str, TCacheData], submitted: TSubmitted):
     data: TCacheData = {}
     for obj, obj_data in objects.items():
         for obj_id, item in obj_data.items():
@@ -269,7 +274,8 @@ def export_cache_format(objects: Dict[str, TCacheData], submitted: TAnyDict):
     data['lastChecked'] = (  # type: ignore
         make_timestamp())
     data['submitted'] = (  # type: ignore
-        list(submitted))
+        # TODO: {k: list(v) for k, v in submitted}
+        list(submitted['scenes']))
     return data
 
 

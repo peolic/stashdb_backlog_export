@@ -68,6 +68,7 @@ class DuplicatePerformersItem(TypedDict):
     duplicates: List[str]
     notes: NotRequired[List[str]]
     user: NotRequired[str]
+    submitted: NotRequired[bool]
 
 
 class SceneFingerprintsItem(TypedDict):
@@ -103,5 +104,6 @@ class PerformerURLItem(TypedDict):
     url: str
     name: str
     text: str
+    submitted: NotRequired[bool]
 
 PerformerURLsDict = Dict[str, List[PerformerURLItem]]

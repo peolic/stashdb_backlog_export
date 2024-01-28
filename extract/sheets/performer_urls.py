@@ -68,6 +68,9 @@ class PerformerURLs(BacklogBase):
 
             item = PerformerURLItem(url=url, name=name, text=text)
 
+            if submitted:
+                item['submitted'] = submitted
+
             data.setdefault(p_id, []).append(item)
 
         return data
