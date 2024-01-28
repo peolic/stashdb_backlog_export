@@ -102,5 +102,6 @@ class PerformersToSplitUpItem(TypedDict):
 class PerformerURLItem(TypedDict):
     url: str
     name: str
+    text: str
 
 PerformerURLsDict = Dict[str, List[PerformerURLItem]]

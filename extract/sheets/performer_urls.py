@@ -16,6 +16,7 @@ class PerformerURLs(BacklogBase):
         self.column_p_id = sheet.get_column_index('id')
         self.column_url  = sheet.get_column_index('url')
         # self.column_user = sheet.get_column_index('user')
+        self.column_text = sheet.get_column_index('text')
 
         self.data = self._parse(sheet.rows)
 
@@ -39,6 +40,7 @@ class PerformerURLs(BacklogBase):
             p_id = row.cells[self.column_p_id].value.strip()
             url  = row.cells[self.column_url].value.strip()
             # user = row.cells[self.column_user].value.strip()
+            text = row.cells[self.column_text].value.strip()
 
             # useless row
             if not (p_id and url and name):
@@ -64,7 +66,7 @@ class PerformerURLs(BacklogBase):
                 print(f'Row {row.num:<4} | WARNING: Skipped due to invalid performer ID')
                 continue
 
-            item = PerformerURLItem(url=url, name=name)
+            item = PerformerURLItem(url=url, name=name, text=text)
 
             data.setdefault(p_id, []).append(item)
 
