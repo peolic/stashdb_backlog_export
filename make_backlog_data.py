@@ -274,8 +274,7 @@ def export_cache_format(objects: Dict[str, TCacheData], submitted: TSubmitted):
     data['lastChecked'] = (  # type: ignore
         make_timestamp())
     data['submitted'] = (  # type: ignore
-        # TODO: {k: list(v) for k, v in submitted.items()}
-        list(submitted['scenes']))
+        {k: list(v) for k, v in submitted.items()})
     return data
 
 
