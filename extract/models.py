@@ -95,9 +95,10 @@ class PerformersToSplitUpItem(TypedDict):
     name: str
     id: str
     fragments: List[SplitFragment]
-    user: NotRequired[str]
+    status: NotRequired[str]
     notes: NotRequired[List[str]]
     links: NotRequired[List[str]]
+    user: NotRequired[str]
 
 
 class PerformerURLItem(TypedDict):

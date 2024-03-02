@@ -30,6 +30,7 @@ class PerformersToSplitUp(BacklogBase):
         self.skip_done = skip_done_rows
         self.skip_done_fragments = skip_done_fragments
 
+        self.column_status = sheet.get_column_index(re.compile(r'Status|Claimed by'))
         self.column_name = sheet.get_column_index('Performer')
         self.column_p_id = sheet.get_column_index(re.compile('Performer ID'))
         self.column_user = sheet.get_column_index(re.compile('Added by'))
@@ -69,6 +70,7 @@ class PerformersToSplitUp(BacklogBase):
 
         cells_fragments = [c for i, c in enumerate(row.cells) if i in self.columns_fragments]
 
+        status: str = row.cells[self.column_status].value.strip()
         name: str = row.cells[self.column_name].value.strip()
         p_id: str = row.cells[self.column_p_id].value.strip()
         user: str = row.cells[self.column_user].value.strip()
@@ -81,6 +83,10 @@ class PerformersToSplitUp(BacklogBase):
             p_id = None  # type: ignore
 
         item = PerformersToSplitUpItem(name=name, id=p_id, fragments=fragments)
+
+        if status:
+            if (status[0], status[-1]) == ('[', ']'):
+                item['status'] = status[1:-1]
 
         notes_lines = list(filter(str.strip, notes.splitlines(False)))
         if notes_lines:
