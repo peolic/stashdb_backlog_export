@@ -179,10 +179,11 @@ class PerformersToSplitUp(BacklogBase):
                     p_id = uuid
                     continue
 
-            # Remove unuseful automated links
-            urlparts = urlsplit(url)
-            if urlparts.scheme == 'http' and urlparts.path == '/':
-                continue
+            if url in cell.links:
+                # Remove unuseful automated links
+                url_parts = urlsplit(url)
+                if url_parts.scheme == 'http' and url_parts.path == '/':
+                    continue
 
             links.append(url)
 
