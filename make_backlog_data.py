@@ -86,7 +86,7 @@ def get_data(ci: bool = False):
             if correction:
                 lc = correction.strip().lower()
                 full_comment = (
-                    field in ('date', )
+                    field in ('date', 'duration', )
                     or (field == 'image' and lc != 'missing image')
                 )
                 if full_comment:
