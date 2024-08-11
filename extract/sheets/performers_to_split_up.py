@@ -30,6 +30,7 @@ class PerformersToSplitUp(BacklogBase):
         self.skip_done = skip_done_rows
         self.skip_done_fragments = skip_done_fragments
 
+        self.column_done = sheet.get_column_index('V')
         self.column_status = sheet.get_column_index(re.compile(r'Status|Claimed by'))
         self.column_name = sheet.get_column_index('Performer')
         self.column_p_id = sheet.get_column_index(re.compile('Performer ID'))
@@ -70,6 +71,7 @@ class PerformersToSplitUp(BacklogBase):
 
         cells_fragments = [c for i, c in enumerate(row.cells) if i in self.columns_fragments]
 
+        done_note: str = row.cells[self.column_done].note.strip()
         status: str = row.cells[self.column_status].value.strip()
         name: str = row.cells[self.column_name].value.strip()
         p_id: str = row.cells[self.column_p_id].value.strip()
@@ -87,6 +89,8 @@ class PerformersToSplitUp(BacklogBase):
         if status:
             if (status[0], status[-1]) == ('[', ']'):
                 item['status'] = status[1:-1]
+        elif done_note.startswith('https://stashdb.org/edits/'):
+            item['status'] = 'queued to be marked as done'
 
         notes_lines = list(filter(str.strip, notes.splitlines(False)))
         if notes_lines:
