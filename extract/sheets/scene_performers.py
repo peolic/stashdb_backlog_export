@@ -64,8 +64,10 @@ class ScenePerformers(BacklogBase):
 
             # no changes
             if len(all_entries) == 0:
-                print(f'Row {row.num:<4} | WARNING: Skipped due to no changes.')
-                continue
+                if not row.item.get('comment'):
+                    print(f'Row {row.num:<4} | WARNING: Skipped due to no changes.')
+                    continue
+                print(f'Row {row.num:<4} | WARNING: Contains no changes, only a comment.')
 
             by_status: Dict[Optional[str], List[AnyPerformerEntry]] = {}
             for entry in all_entries:
