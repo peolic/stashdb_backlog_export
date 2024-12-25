@@ -176,16 +176,17 @@ class PerformersToSplitUp(BacklogBase):
         links: List[str] = []
 
         for url in cell.links + note_links:
+            url_parts = urlsplit(url)
+
             if not p_id and url in cell.links:
                 # Extract performer ID from url, if exists
                 obj, uuid = parse_stashdb_url(url)
-                if obj == 'performers' and uuid:
+                if obj == 'performers' and uuid and not url_parts.query:
                     p_id = uuid
                     continue
 
             if url in cell.links:
                 # Remove unuseful automated links
-                url_parts = urlsplit(url)
                 if url_parts.scheme == 'http' and url_parts.path == '/':
                     continue
 
@@ -195,7 +196,6 @@ class PerformersToSplitUp(BacklogBase):
 
         fragment = SplitFragment(
             raw=value,
-            **(dict(done=cell.done) if cell.done else dict()),
             id=p_id,
             name=name,
         )
@@ -206,6 +206,8 @@ class PerformersToSplitUp(BacklogBase):
             fragment['notes'] = notes
         if links:
             fragment['links'] = links
+        if cell.done:
+            fragment['done'] = cell.done
 
         return fragment
 
