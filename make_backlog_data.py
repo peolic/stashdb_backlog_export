@@ -5,7 +5,7 @@ import os
 import re
 import sys
 from contextlib import suppress
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from operator import itemgetter
 from pathlib import Path
 from shutil import rmtree
@@ -253,7 +253,7 @@ def filter_empty(it: Iterable[str]) -> List[str]:
 
 
 def make_timestamp(add_seconds: int = 0) -> str:
-    dt = datetime.utcnow()
+    dt = datetime.now(UTC).replace(tzinfo=None)
     if add_seconds:
         dt += timedelta(seconds=add_seconds)
     return dt.isoformat(timespec='milliseconds') + 'Z'
