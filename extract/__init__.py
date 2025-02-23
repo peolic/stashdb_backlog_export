@@ -1,5 +1,5 @@
 # coding: utf-8
-from typing import Optional
+from typing import List, Optional
 
 class BacklogExtractor:
 
@@ -14,13 +14,14 @@ class BacklogExtractor:
         'performer_urls': 1209918135,
     }
 
-    def __init__(self, api_key: Optional[str]):
+    def __init__(self, api_key: Optional[str], sheet_names: List[str] = []):
         args = {
             'spreadsheet_id': self.SPREADSHEET_ID,
             'sheet_ids': list(self.SHEET_WHITELIST.values()),
         }
 
         if api_key:
+            args['sheet_names'] = sheet_names
             from .interfaces.api import DataInterface
             self.interface = DataInterface(api_key=api_key, **args)
             self.type = 'API'

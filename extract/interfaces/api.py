@@ -21,7 +21,7 @@ class DataInterface(InterfaceBase[Sheet]):
         'sheets.data.rowData.values.note',
     ]
 
-    def __init__(self, api_key: str, spreadsheet_id: str, sheet_ids: List[int]):
+    def __init__(self, api_key: str, spreadsheet_id: str, sheet_ids: List[int], sheet_names: List[str]):
         super(DataInterface, self).__init__()
 
         if not api_key:
@@ -38,6 +38,7 @@ class DataInterface(InterfaceBase[Sheet]):
             },
             params={
                 'prettyPrint': False,
+                **({'ranges': [f"'{sn}'!A:AZ" for sn in sheet_names]} if sheet_names else {})
             },
         )
 
