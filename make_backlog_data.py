@@ -60,7 +60,7 @@ def get_data(ci: bool = False):
     print('processing information...')
 
     scenes: TCacheData = {}
-    submitted: TSubmitted = dict(scenes=dict(), performers=dict())
+    submitted: TSubmitted = {'scenes': dict(), 'performers': dict()}
 
     pattern_find_urls = re.compile(r'(https?://[^\s]+)')
     pattern_comment_delimiter = re.compile(r' ; | *\n')

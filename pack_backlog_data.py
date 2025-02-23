@@ -1,11 +1,10 @@
 #!/usr/bin/env python3.11
 # coding: utf-8
-from typing import Dict, List
-
 import yaml
 
 from make_backlog_data import (
     TCacheData,
+    TSubmitted,
     cache_to_json,
     export_cache_format,
     performers_target,
@@ -14,8 +13,7 @@ from make_backlog_data import (
     submitted_target,
 )
 
-
-def get_data():
+def main():
     print('collecting information...')
 
     scenes: TCacheData = {
@@ -27,16 +25,9 @@ def get_data():
         for fp in performers_target.glob('*/*.yml')
     }
 
-    submitted: Dict[str, List[str]] = yaml.safe_load(submitted_target.read_bytes())
+    submitted: TSubmitted = yaml.safe_load(submitted_target.read_bytes())
 
-    return scenes, performers, submitted
-
-
-def main():
-    scenes, performers, submitted = get_data()
-    submitted_scenes = dict.fromkeys(submitted['scenes'])
-
-    cache_data = export_cache_format(dict(scenes=scenes, performers=performers), submitted=submitted_scenes)
+    cache_data = export_cache_format({'scenes': scenes, 'performers': performers}, submitted=submitted)
     (script_dir / 'stashdb_backlog.json').write_bytes(cache_to_json(cache_data, True))
 
     print('done')
