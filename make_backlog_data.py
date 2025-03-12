@@ -145,6 +145,13 @@ def get_data(ci: bool = False):
         item.pop('user', None)
         for fragment in item['fragments']:
             fragment.pop('raw', None)
+        if status := item.get('status'):
+            if status == '[queued to be marked as done]':
+                submitted['performers'][p_id] = True
+            if (status[0], status[-1]) == ('[', ']'):
+                item['status'] = status[1:-1]
+            else:
+                del item['status']
         performer['split'] = item
 
     for p in duplicate_performers:

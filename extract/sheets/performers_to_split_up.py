@@ -87,10 +87,9 @@ class PerformersToSplitUp(BacklogBase):
         item = PerformersToSplitUpItem(name=name, id=p_id, fragments=fragments)
 
         if status:
-            if (status[0], status[-1]) == ('[', ']'):
-                item['status'] = status[1:-1]
+            item['status'] = status
         if done_note.startswith('https://stashdb.org/edits/'):
-            item['status'] = 'queued to be marked as done'
+            item['status'] = '[queued to be marked as done]'
 
         notes_lines = list(filter(str.strip, notes.splitlines(False)))
         if notes_lines:
