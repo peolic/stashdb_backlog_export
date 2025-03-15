@@ -1,5 +1,6 @@
 # coding: utf-8
 import re
+import string
 from typing import List, NamedTuple, Optional
 from urllib.parse import urlsplit
 
@@ -8,6 +9,14 @@ from ..classes import Sheet, SheetCell, SheetRow
 from ..models import PerformersToSplitUpItem, SplitFragment
 from ..utils import URL_PATTERN, is_uuid, parse_stashdb_url
 
+
+def column_letter(cell_num: int) -> str:
+    """Converts a number to letter column as used in Sheets/Excel."""
+    cell_col = ''
+    while cell_num > 0:
+        cell_num, rem = divmod(cell_num - 1, 26)
+        cell_col = string.ascii_uppercase[rem] + cell_col
+    return cell_col
 
 def compile_labels_pattern():
     labels = '|'.join([
@@ -110,17 +119,21 @@ class PerformersToSplitUp(BacklogBase):
     def _get_fragments(self, cells: List[SheetCell], row_num: int) -> List[SplitFragment]:
         results: List[SplitFragment] = []
 
+        column_1 = self.columns_fragments[0]
+
         for cell_num, cell in enumerate(cells, 1):
             # skip empty
             if not cell.value.strip():
                 continue
 
+            cell_col = column_letter(cell_num + column_1)
+
             # skip completed
             if cell.done and self.skip_done_fragments:
                 continue
-                print(f'Row {row_num:<4} | skipped completed fragment {cell_num}: {cell.value}')
+                print(f'Row {row_num:<4} | skipped completed fragment {cell_col} ({cell_num}): {cell.value}')
 
-            if fragment := self._parse_fragment_cell(cell):
+            if fragment := self._parse_fragment_cell(cell, cell_col):
                 results.append(fragment)
 
         return results
@@ -129,7 +142,7 @@ class PerformersToSplitUp(BacklogBase):
     LABELS_PATTERN = compile_labels_pattern()
     ST_LINK_PATTERN = re.compile(r'\u0002' + URL_PATTERN.pattern + r'\u0003')
 
-    def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
+    def _parse_fragment_cell(self, cell: SheetCell, cell_col: str) -> Optional[SplitFragment]:
         value = cell.value.strip()
         lines = value.splitlines()
 
@@ -195,6 +208,7 @@ class PerformersToSplitUp(BacklogBase):
 
         fragment = SplitFragment(
             raw=value,
+            column=cell_col,
             id=p_id,
             name=name,
         )

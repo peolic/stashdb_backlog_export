@@ -83,6 +83,7 @@ SceneFingerprintsDict = Dict[str, List[SceneFingerprintsItem]]
 
 class SplitFragment(TypedDict):
     raw: str
+    column: str
     id: Optional[str]
     name: str
     text: NotRequired[str]
