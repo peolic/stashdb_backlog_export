@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from operator import itemgetter
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Dict, Iterable, List, Literal, Union
+from typing import Any, Dict, Iterable, List, Literal, Union, cast
 
 import yaml
 
@@ -136,7 +136,8 @@ def get_data(ci: bool = False):
     performers: TCacheData = {}
 
     for item in performers_to_split_up:
-        p_id = item.pop('id')
+        p_id = cast(str, item.pop('id'))
+        item.pop('row', None)
         performer = performers.setdefault(p_id, {})
         if 'split' in performer:
             with report_errors(ci):
@@ -346,6 +347,8 @@ class CompactJSONEncoder(json.JSONEncoder):
 
     @property
     def indent_str(self) -> str:
+        if not isinstance(self.indent, int):
+            raise TypeError(f"ident = {self.indent!r}")
         return self.INDENTATION_CHAR*(self.indentation_level*self.indent)
 
 

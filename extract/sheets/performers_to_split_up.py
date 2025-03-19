@@ -93,7 +93,7 @@ class PerformersToSplitUp(BacklogBase):
             print(f"Row {row.num:<4} | WARNING: Invalid performer ID: '{p_id}'")
             p_id = None  # type: ignore
 
-        item = PerformersToSplitUpItem(name=name, id=p_id, fragments=fragments)
+        item = PerformersToSplitUpItem(row=row.num, name=name, id=p_id, fragments=fragments)
 
         if status:
             item['status'] = status
