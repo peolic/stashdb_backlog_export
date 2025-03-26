@@ -191,13 +191,14 @@ interface DataStructure {
         data: Array<{
             rowData: Array<{
                 values: Array<{
+                    formattedValue?: string
+                    hyperlink?: string
+                    note?: string
                     effectiveFormat: {
                         textFormat: {
                             strikethrough: boolean
                         }
                     }
-                    formattedValue?: string
-                    hyperlink?: string
                     textFormatRuns?: Array<{
                         startIndex?: number
                         format: {
@@ -207,14 +208,12 @@ interface DataStructure {
                             strikethrough?: boolean
                         }
                     }>
-                    note?: string
                 }>
             }>
         }>
         properties: {
             sheetId: number
             title: string
-            index: number
             gridProperties: {
                 rowCount: number
                 columnCount: number
