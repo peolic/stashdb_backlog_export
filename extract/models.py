@@ -100,6 +100,7 @@ class PerformersToSplitUpItem(TypedDict):
     notes: NotRequired[List[str]]
     links: NotRequired[List[str]]
     user: NotRequired[str]
+    submitted: NotRequired[bool]
     row: int
 
 
