@@ -33,7 +33,7 @@ class Message:
         if self.title:
             params.append(f'title={self.title}')
 
-        params_str = f"' {','.join(params)}" if params else ''
+        params_str = f" {','.join(params)}" if params else ''
         return f'::{self.level or "notice"}{params_str}::{self.text}'
 
 
