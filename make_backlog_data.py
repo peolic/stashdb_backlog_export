@@ -35,26 +35,19 @@ def get_data(ci: bool = False):
 
     api = BacklogExtractor(api_key=get_google_api_key())
 
-    print('>>> Scene-Performers')
-    with report_errors(ci):
+    with report_errors(ci, 'Scene-Performers'):
         scene_performers = api.scene_performers(skip_no_id=False)
-    print('>>> Scene Fixes')
-    with report_errors(ci):
+    with report_errors(ci, 'Scene Fixes'):
         scene_fixes = api.scene_fixes()
-    print('>>> Scene Fingerprints')
-    with report_errors(ci):
+    with report_errors(ci, 'Scene Fingerprints'):
         scene_fingerprints = api.scene_fingerprints(skip_no_correct_scene=False)
-    print('>>> Duplicate Scenes')
-    with report_errors(ci):
+    with report_errors(ci, 'Duplicate Scenes'):
         duplicate_scenes = api.duplicate_scenes()
-    print('>>> Performers To Split Up')
-    with report_errors(ci):
+    with report_errors(ci, 'Performers To Split Up'):
         performers_to_split_up = api.performers_to_split_up()
-    print('>>> Duplicate Performers')
-    with report_errors(ci):
+    with report_errors(ci, 'Duplicate Performers'):
         duplicate_performers = api.duplicate_performers()
-    print('>>> Performer URLs')
-    with report_errors(ci):
+    with report_errors(ci, 'Performer URLs'):
         performer_urls = api.performer_urls()
 
     print('processing information...')

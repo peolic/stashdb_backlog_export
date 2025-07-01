@@ -1,8 +1,9 @@
 # coding: utf-8
 import io
+import re
 import sys
 from contextlib import contextmanager, redirect_stdout
-from dataclasses import dataclass
+from dataclasses import dataclass, KW_ONLY
 from typing import List, Literal, Optional
 
 LOG_LEVEL = Literal['debug', 'notice', 'warning', 'error']
@@ -11,6 +12,7 @@ LOG_LEVEL = Literal['debug', 'notice', 'warning', 'error']
 class Message:
     level: Literal['', LOG_LEVEL]
     text: str
+    _: KW_ONLY
     filename: Optional[str] = None
     line: Optional[int] = None
     end_line: Optional[int] = None
@@ -36,8 +38,11 @@ class Message:
 
 
 @contextmanager
-def report_errors(ci: bool):
+def report_errors(ci: bool, header: Optional[str] = None):
     stdout = sys.stdout
+
+    if header:
+        print(f'>>> {header}')
 
     with redirect_stdout(io.StringIO()) as buffer:
         yield
@@ -49,10 +54,17 @@ def report_errors(ci: bool):
             print(output, file=stdout)
             return
 
-        for line in output.splitlines():
+        for text in output.splitlines():
             level = 'notice'
-            if 'WARNING:' in line:
+            if 'WARNING:' in text:
                 level = 'warning'
-            if 'ERROR' in line:
+            if 'ERROR' in text:
                 level = 'error'
-            print(Message(level, line), file=stdout)
+
+            row_num: Optional[int] = None
+            if row_match := pattern_row.match(text):
+                row_num = int(row_match.group(1))
+
+            print(Message(level, text, title=header, line=row_num), file=stdout)
+
+pattern_row = re.compile(r'\bRow (\d+)\b')
