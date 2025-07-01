@@ -1,6 +1,5 @@
 # coding: utf-8
 import io
-import re
 import sys
 from contextlib import contextmanager, redirect_stdout
 from dataclasses import dataclass, KW_ONLY
@@ -60,11 +59,4 @@ def report_errors(ci: bool, header: Optional[str] = None):
                 level = 'warning'
             if 'ERROR' in text:
                 level = 'error'
-
-            row_num: Optional[int] = None
-            if row_match := pattern_row.match(text):
-                row_num = int(row_match.group(1))
-
-            print(Message(level, text, title=header, line=row_num), file=stdout)
-
-pattern_row = re.compile(r'\bRow (\d+)\b')
+            print(Message(level, text, title=header), file=stdout)
