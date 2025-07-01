@@ -1,6 +1,6 @@
 # coding: utf-8
 import re
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple, cast
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
@@ -8,7 +8,8 @@ from ..models import (
     AnyPerformerEntry,
     PerformerEntry,
     PerformerUpdateEntry,
-    ScenePerformersItem
+    ScenePerformersItem,
+    StudioInfoMixin
 )
 from ..utils import (
     first_performer_name,
@@ -164,9 +165,9 @@ class ScenePerformers(BacklogBase):
 
         user: str = row.cells[self.column_user].value.strip()
 
-        studio_info = {'studio': studio}
+        studio_info = StudioInfoMixin(studio=studio)
         if studio and (parent_studio_match := self._parent_studio_pattern.fullmatch(studio)):
-            studio_info.update(parent_studio_match.groupdict())
+            studio_info.update(cast(StudioInfoMixin, parent_studio_match.groupdict()))
 
         item = ScenePerformersItem(
             **studio_info,

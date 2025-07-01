@@ -18,12 +18,15 @@ class PerformerUpdateEntry(_PerformerEntryCommon):
 AnyPerformerEntry = Union[PerformerEntry, PerformerUpdateEntry]
 
 
-class ScenePerformersItem(TypedDict):
+class StudioInfoMixin(TypedDict):
     studio: Optional[str]
+    parent_studio: NotRequired[str]
+
+
+class ScenePerformersItem(StudioInfoMixin):
     scene_id: str
     remove: List[PerformerEntry]
     append: List[PerformerEntry]
-    parent_studio: NotRequired[str]
     update: NotRequired[List[PerformerUpdateEntry]]
     comment: NotRequired[str]
     user: NotRequired[str]
