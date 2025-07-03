@@ -233,8 +233,13 @@ class ScenePerformers(BacklogBase):
             name = match.group('name')
             appearance = match.group('as')
             dsmbg = match.group('dsmbg')
+
+            if not dsmbg and (dsmbg_start := name.find(' (')) > 0 and name.endswith(')'):
+                dsmbg = name[dsmbg_start+2 : -1]
+                name = name[:dsmbg_start]
+                print(f'Row {row_num:<4} | WARNING: Incorrect disambiguation syntax {raw_name}')
         else:
-            print(f'WARNING: Failed to parse name {raw_name}')
+            print(f'Row {row_num:<4} | WARNING: Failed to parse name {raw_name}')
             status = None
             name = raw_name.strip()
             appearance = None
