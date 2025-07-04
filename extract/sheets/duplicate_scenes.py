@@ -4,12 +4,14 @@ from typing import List, NamedTuple
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
+from ..logger import LoggerMixin
 from ..models import DuplicateScenesItem
 from ..utils import is_uuid
 
 
-class DuplicateScenes(BacklogBase):
+class DuplicateScenes(BacklogBase, LoggerMixin):
     def __init__(self, sheet: Sheet):
+        LoggerMixin.__init__(self, __name__, 'scene')
         self.column_category = sheet.get_column_index(re.compile('Category'))
         self.column_studio   = sheet.get_column_index(re.compile('Studio'))
         self.column_main_id  = sheet.get_column_index(re.compile('Main ID'))
@@ -37,7 +39,7 @@ class DuplicateScenes(BacklogBase):
 
             compare = hash(frozenset((main_id, *duplicate_ids)))
             if compare in seen:
-                print(f'Row {row.num:<4} | WARNING: Skipping duplicate entry for scene ID: {main_id}')
+                self.log('warning', f'Skipping duplicate entry for scene ID: {main_id}', row.num, uuid=main_id)
                 continue
             seen.append(compare)
 
@@ -54,7 +56,7 @@ class DuplicateScenes(BacklogBase):
         try:
             done = row.is_done()
         except row.CheckboxNotFound as error:
-            print(error)
+            self.log('error', str(error), error.row_num)
             done = False
 
         category: str = row.cells[self.column_category].value.strip()
@@ -65,7 +67,7 @@ class DuplicateScenes(BacklogBase):
 
         if main_id and not is_uuid(main_id):
             if main_id != '-':
-                print(f"Row {row.num:<4} | WARNING: Invalid main scene ID: '{main_id}'")
+                self.log('warning', f"Invalid main scene ID: '{main_id}'", row.num)
             main_id = ''
 
         item: DuplicateScenesItem = { 'studio': studio, 'main_id': main_id, 'duplicates': duplicates }
@@ -95,10 +97,10 @@ class DuplicateScenes(BacklogBase):
             # skip completed
             if cell.done:
                 continue
-                print(f'Row {row_num:<4} | skipped completed {scene_id}')
+                self.log('', f'skipped completed {scene_id}', row_num)
 
             if scene_id in results:
-                print(f'Row {row_num:<4} | WARNING: Skipping duplicate scene ID: {scene_id}')
+                self.log('warning', f'Skipping duplicate scene ID: {scene_id}', row_num, uuid=scene_id)
                 continue
 
             results.append(scene_id)

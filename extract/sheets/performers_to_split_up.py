@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
+from ..logger import LoggerMixin
 from ..models import PerformersToSplitUpItem, SplitFragment
 from ..utils import URL_PATTERN, is_uuid, parse_stashdb_url
 
@@ -34,8 +35,9 @@ def compile_labels_pattern():
     return re.compile(rf'(- )? *\[({labels})( ?\d)?\]', re.I)
 
 
-class PerformersToSplitUp(BacklogBase):
+class PerformersToSplitUp(BacklogBase, LoggerMixin):
     def __init__(self, sheet: Sheet, skip_done_rows: bool, skip_done_fragments: bool):
+        LoggerMixin.__init__(self, __name__, 'performer')
         self.skip_done = skip_done_rows
         self.skip_done_fragments = skip_done_fragments
 
@@ -75,7 +77,7 @@ class PerformersToSplitUp(BacklogBase):
         try:
             done = row.is_done()
         except row.CheckboxNotFound as error:
-            print(error)
+            self.log('error', str(error), error.row_num)
             done = False
 
         cells_fragments = [c for i, c in enumerate(row.cells) if i in self.columns_fragments]
@@ -90,7 +92,7 @@ class PerformersToSplitUp(BacklogBase):
         fragments = self._get_fragments(cells_fragments, row.num)
 
         if p_id and not is_uuid(p_id):
-            print(f"Row {row.num:<4} | WARNING: Invalid performer ID: '{p_id}'")
+            self.log('warning', f"Invalid performer ID: '{p_id}'", row.num)
             p_id = None  # type: ignore
 
         item = PerformersToSplitUpItem(row=row.num, name=name, id=p_id, fragments=fragments)
@@ -132,7 +134,7 @@ class PerformersToSplitUp(BacklogBase):
             # skip completed
             if cell.done and self.skip_done_fragments:
                 continue
-                print(f'Row {row_num:<4} | skipped completed fragment {cell_col} ({cell_num}): {cell.value}')
+                self.log('', f'skipped completed fragment {cell_col} ({cell_num}): {cell.value}', row_num)
 
             if fragment := self._parse_fragment_cell(cell, cell_col):
                 results.append(fragment)

@@ -1,15 +1,17 @@
 # coding: utf-8
 import re
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
+from ..logger import LoggerMixin
 from ..models import DuplicatePerformersItem
 from ..utils import is_uuid
 
 
-class DuplicatePerformers(BacklogBase):
+class DuplicatePerformers(BacklogBase, LoggerMixin):
     def __init__(self, sheet: Sheet, skip_done: bool):
+        LoggerMixin.__init__(self, __name__, 'performer')
         self.skip_done = skip_done
 
         self.column_name    = sheet.get_column_index(re.compile('Performer'))
@@ -51,7 +53,7 @@ class DuplicatePerformers(BacklogBase):
             try:
                 done = row.is_done()
             except row.CheckboxNotFound as error:
-                print(error)
+                self.log('error', str(error), error.row_num)
                 done = False
 
         cell_name = row.cells[self.column_name]
@@ -67,7 +69,7 @@ class DuplicatePerformers(BacklogBase):
 
         if main_id and not is_uuid(main_id):
             if main_id != '-':
-                print(f"Row {row.num:<4} | WARNING: Invalid main performer ID: '{main_id}'")
+                self.log('warning', f"Invalid main performer ID: '{main_id}'", row.num)
             main_id = ''
 
         item = DuplicatePerformersItem(
@@ -100,7 +102,7 @@ class DuplicatePerformers(BacklogBase):
             # skip completed
             if cell.done:
                 continue
-                print(f'Row {row_num:<4} | skipped completed {p_id}')
+                self.log('', f'skipped completed {p_id}', row_num)
 
             # add everything else as notes
             if not is_uuid(p_id):
@@ -108,7 +110,7 @@ class DuplicatePerformers(BacklogBase):
                 continue
 
             if p_id in results:
-                print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer ID: {p_id}')
+                self.log('warning', f'Skipping duplicate performer ID: {p_id}', row_num, uuid=p_id)
                 continue
 
             results.append(p_id)

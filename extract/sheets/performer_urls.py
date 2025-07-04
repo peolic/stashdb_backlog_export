@@ -4,12 +4,14 @@ from typing import Dict, List
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetRow
+from ..logger import LoggerMixin
 from ..models import PerformerURLsDict, PerformerURLItem
 from ..utils import is_uuid
 
 
-class PerformerURLs(BacklogBase):
+class PerformerURLs(BacklogBase, LoggerMixin):
     def __init__(self, sheet: Sheet, skip_done: bool):
+        LoggerMixin.__init__(self, __name__, 'performer')
         self.skip_done = skip_done
 
         self.column_name = sheet.get_column_index('name')
@@ -33,7 +35,7 @@ class PerformerURLs(BacklogBase):
                 try:
                     done = row.is_done()
                 except row.CheckboxNotFound as error:
-                    print(error)
+                    self.log('error', str(error), error.row_num)
                     done = False
 
             name = row.cells[self.column_name].value.strip()
@@ -54,16 +56,17 @@ class PerformerURLs(BacklogBase):
 
             last_row = last_seen.get(p_id, None)
             if last_row and row.num > (last_row + 1):
-                print(f'Row {row.num:<4} | WARNING: Ungrouped entries for performer ID {p_id!r} last seen row {last_row}')
+                self.log('warning', f'Ungrouped entries for performer ID {p_id!r} last seen row {last_row}',
+                         row.num, uuid=p_id)
             else:
                 last_seen[p_id] = row.num
 
             if not url:
-                print(f'Row {row.num:<4} | WARNING: Skipped due to empty URL')
+                self.log('warning', f'Skipped due to empty URL', row.num)
                 continue
 
             if not is_uuid(p_id):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid performer ID')
+                self.log('warning', f'Skipped due to invalid performer ID', row.num)
                 continue
 
             item = PerformerURLItem(url=url, name=name, text=text)

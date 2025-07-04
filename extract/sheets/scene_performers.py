@@ -4,6 +4,7 @@ from typing import Dict, List, NamedTuple, Optional, Tuple, cast
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
+from ..logger import LoggerMixin
 from ..models import (
     AnyPerformerEntry,
     PerformerEntry,
@@ -21,8 +22,9 @@ from ..utils import (
 )
 
 
-class ScenePerformers(BacklogBase):
+class ScenePerformers(BacklogBase, LoggerMixin):
     def __init__(self, sheet: Sheet, skip_done: bool, skip_no_id: bool):
+        LoggerMixin.__init__(self, __name__, 'scene')
         self.skip_done = skip_done
         self.skip_no_id = skip_no_id
 
@@ -60,15 +62,15 @@ class ScenePerformers(BacklogBase):
 
             # invalid scene id
             if not is_uuid(scene_id):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID: {scene_id}')
+                self.log('warning', f'Skipped due to invalid scene ID: {scene_id}', row.num)
                 continue
 
             # no changes
             if len(all_entries) == 0:
                 if not row.item.get('comment'):
-                    print(f'Row {row.num:<4} | WARNING: Skipped due to no changes.')
+                    self.log('warning', f'Skipped due to no changes.', row.num)
                     continue
-                print(f'Row {row.num:<4} | WARNING: Contains no changes, only a comment.')
+                self.log('warning', f'Contains no changes, only a comment.', row.num, uuid=scene_id)
 
             by_status: Dict[Optional[str], List[AnyPerformerEntry]] = {}
             for entry in all_entries:
@@ -78,37 +80,25 @@ class ScenePerformers(BacklogBase):
 
             # skip entries tagged with [merge] as they are marked to be merged into the paired performer
             if self.skip_no_id and by_status.get('merge'):
-                formatted_merge_tagged = [performer_name(i) for i in by_status['merge']]
-                print(
-                    f'Row {row.num:<4} | Skipped due to [merge]-tagged performers: '
-                    + ' , '.join(formatted_merge_tagged)
-                )
+                formatted_merge_tagged = ' , '.join(performer_name(i) for i in by_status['merge'])
+                self.log('warning', f'Skipped due to [merge]-tagged performers: {formatted_merge_tagged}', row.num)
                 continue
             # skip entries tagged with [edit] as they are marked to be edited
             #   and given the information of one of the to-append performers
             if self.skip_no_id and by_status.get('edit'):
-                formatted_edit_tagged = [performer_name(i) for i in by_status['edit']]
-                print(
-                    f'Row {row.num:<4} | Skipped due to [edit]-tagged performers: '
-                    + ' , '.join(formatted_edit_tagged)
-                )
+                formatted_edit_tagged = ' , '.join(performer_name(i) for i in by_status['edit'])
+                self.log('warning', f'Skipped due to [edit]-tagged performers: {formatted_edit_tagged}', row.num)
                 continue
             # skip entries tagged with [new] as they are marked to be created
             if self.skip_no_id and by_status.get('new'):
-                formatted_new_tagged = [performer_name(i) for i in by_status['new']]
-                print(
-                    f'Row {row.num:<4} | Skipped due to [new]-tagged performers: '
-                    + ' , '.join(formatted_new_tagged)
-                )
+                formatted_new_tagged = ' , '.join(performer_name(i) for i in by_status['new'])
+                self.log('warning', f'Skipped due to [new]-tagged performers: {formatted_new_tagged}', row.num)
                 continue
             # If this item has any performers that do not have a StashDB ID,
             #   skip the whole item for now, to avoid unwanted deletions.
             if self.skip_no_id and (no_id := [i for i in all_entries if not i['id']]):
-                formatted_no_id = [performer_name(i) for i in no_id]
-                print(
-                    f'Row {row.num:<4} | WARNING: Skipped due to missing performer IDs: '
-                    + ' , '.join(formatted_no_id)
-                )
+                formatted_no_id = ' , '.join(performer_name(i) for i in no_id)
+                self.log('warning', f'Skipped due to missing performer IDs: {formatted_no_id}', row.num)
                 continue
 
             if scene_id in data:
@@ -148,7 +138,7 @@ class ScenePerformers(BacklogBase):
             try:
                 done = row.is_done()
             except row.CheckboxNotFound as error:
-                print(error)
+                self.log('error', str(error), error.row_num)
                 done = False
 
         remove_cells = [c for i, c in enumerate(row.cells) if i in self.columns_remove]
@@ -156,9 +146,9 @@ class ScenePerformers(BacklogBase):
 
         studio: str = row.cells[self.column_studio].value.strip()
         scene_id: str = row.cells[self.column_scene_id].value.strip()
-        remove = self._get_change_entries(remove_cells, row.num)
-        append = self._get_change_entries(append_cells, row.num)
-        update = self._find_updates(remove, append, row.num)
+        remove = self._get_change_entries(remove_cells, row.num, scene_id)
+        append = self._get_change_entries(append_cells, row.num, scene_id)
+        update = self._find_updates(remove, append, row.num, scene_id)
 
         note_c = row.cells[self.column_note]
         note   = note_c.value.strip()
@@ -188,25 +178,25 @@ class ScenePerformers(BacklogBase):
 
         return self.RowResult(row.num, submitted, done, item)
 
-    def _get_change_entries(self, cells: List[SheetCell], row_num: int):
+    def _get_change_entries(self, cells: List[SheetCell], row_num: int, scene_id: str):
         results: List[PerformerEntry] = []
 
         for cell in cells:
-            entry, raw_name = self._get_change_entry(cell, row_num)
+            entry, raw_name = self._get_change_entry(cell, row_num, scene_id=scene_id)
 
             if not entry:
                 continue
-                print(f'skipped empty/comment/completed/invalid {raw_name}')
+                self.log('warning', f'skipped empty/comment/completed/invalid {raw_name}', row_num, uuid=scene_id)
 
             if entry in results:
-                print(f'Row {row_num:<4} | WARNING: Skipping duplicate performer: {raw_name}')
+                self.log('warning', f'Skipping duplicate performer: {raw_name}', row_num, uuid=scene_id)
                 continue
 
             results.append(entry)
 
         return results
 
-    def _get_change_entry(self, cell: SheetCell, row_num: int) -> Tuple[Optional[PerformerEntry], str]:
+    def _get_change_entry(self, cell: SheetCell, row_num: int, scene_id: str) -> Tuple[Optional[PerformerEntry], str]:
         raw_name: str = cell.value.strip()
 
         # skip empty
@@ -220,7 +210,7 @@ class ScenePerformers(BacklogBase):
         # skip completed (legacy)
         if self.skip_done and cell.done:
             return None, raw_name
-            print(f'skipped completed {raw_name}')
+            self.log('warning', f'skipped completed {raw_name}', row_num, uuid=scene_id)
 
         match = re.fullmatch(
             r'(?:\[(?P<status>[a-z]+?)\] )?(?P<name>.+?)(?: \[(?P<dsmbg>.+?)\])?(?: \(as (?P<as>.+)\))?',
@@ -237,9 +227,9 @@ class ScenePerformers(BacklogBase):
             if not dsmbg and (dsmbg_start := name.find(' (')) > 0 and name.endswith(')'):
                 dsmbg = name[dsmbg_start+2 : -1]
                 name = name[:dsmbg_start]
-                print(f'Row {row_num:<4} | WARNING: Incorrect disambiguation syntax {raw_name}')
+                self.log('warning', f'Incorrect disambiguation syntax: {raw_name}', row_num, uuid=scene_id)
         else:
-            print(f'Row {row_num:<4} | WARNING: Failed to parse name {raw_name}')
+            self.log('warning', f'Failed to parse name {raw_name}', row_num, uuid=scene_id)
             status = None
             name = raw_name.strip()
             appearance = None
@@ -249,7 +239,7 @@ class ScenePerformers(BacklogBase):
         url = cell.first_link
         if url is None:
             if status != 'new':
-                print(f'Row {row_num:<4} | WARNING: Missing performer ID: {raw_name}')
+                self.log('warning', f'Missing performer ID: {raw_name}', row_num, uuid=scene_id)
             p_id = None
 
         else:
@@ -261,16 +251,16 @@ class ScenePerformers(BacklogBase):
             elif obj is None or uuid is None:
                 p_id = None
                 if status != 'new':
-                    print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
+                    self.log('warning', f'Failed to extract performer ID for: {raw_name}', row_num, uuid=scene_id)
 
             else:
                 p_id = None
                 # if obj == 'edits':
                 #     if not self.skip_no_id:
-                #         print(f"Row {row_num:<4} | WARNING: Edit ID found for: {raw_name}")
+                #         self.log('warning', f'Edit ID found for: {raw_name}', row_num, uuid=scene_id)
                 # else:
                 if obj != 'edits':
-                    print(f"Row {row_num:<4} | WARNING: Failed to extract performer ID for: {raw_name}")
+                    self.log('warning', f'Failed to extract performer ID for: {raw_name}', row_num, uuid=scene_id)
 
         entry = PerformerEntry(id=p_id, name=name, appearance=appearance)
         if dsmbg:
@@ -283,7 +273,7 @@ class ScenePerformers(BacklogBase):
             entry['notes'] = [n for n in cell.note.splitlines() if n.strip()]
         return entry, raw_name
 
-    def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int):
+    def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int, scene_id: str):
         """
         Determine performer appearance update entries from remove & append entries.
 
@@ -308,9 +298,10 @@ class ScenePerformers(BacklogBase):
                 if r_item.get('status') == 'edit':
                     continue
 
-                print(f"Row {row_num:<4} | WARNING: Unexpected name/ID:"
-                      f"\n  [{r_item['id']}] - {performer_name(r_item)}"
-                      f"\n  [{a_item['id']}] - {performer_name(a_item)}")
+                comparison = (f"Unexpected name/ID:"
+                              f"\n  [{r_item['id']}] - {performer_name(r_item)}"
+                              f"\n  [{a_item['id']}] - {performer_name(a_item)}")
+                self.log('warning', comparison, row_num, uuid=scene_id)
                 continue
 
             u_item = PerformerUpdateEntry(

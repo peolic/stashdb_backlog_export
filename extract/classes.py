@@ -115,9 +115,6 @@ class SheetRow:
             super().__init__(message)
             self.row_num = row_num
 
-        def __str__(self) -> str:
-            return f'Row {self.row_num:<4} | {super().__str__()}'
-
 
 @dataclass
 class Sheet:

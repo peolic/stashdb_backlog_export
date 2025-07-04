@@ -1,5 +1,9 @@
 # coding: utf-8
-from typing import List, Optional
+from typing import Optional
+
+from .logger import setup_logging
+
+setup_logging()
 
 class BacklogExtractor:
 

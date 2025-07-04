@@ -4,12 +4,14 @@ from typing import Dict, List, Optional
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetRow
+from ..logger import LoggerMixin
 from ..models import SceneFingerprintsDict, SceneFingerprintsItem
 from ..utils import is_uuid, parse_duration
 
 
-class SceneFingerprints(BacklogBase):
+class SceneFingerprints(BacklogBase, LoggerMixin):
     def __init__(self, sheet: Sheet, skip_done: bool, skip_no_correct_scene: bool, with_user: bool = False):
+        LoggerMixin.__init__(self, __name__, 'scene')
         self.skip_done = skip_done
         self.skip_no_correct_scene = skip_no_correct_scene
         self.with_user = with_user
@@ -31,7 +33,7 @@ class SceneFingerprints(BacklogBase):
             try:
                 done = row.is_done()
             except row.CheckboxNotFound as error:
-                print(error)
+                self.log('error', str(error), error.row_num)
                 done = False
 
             scene_id: str = row.cells[self.column_scene_id].value.strip()
@@ -54,14 +56,15 @@ class SceneFingerprints(BacklogBase):
                 continue
 
             if last_row and row.num > (last_row + 1):
-                print(f'Row {row.num:<4} | WARNING: Ungrouped entries for scene ID {scene_id!r} last seen row {last_row}')
+                self.log('warning', f'Ungrouped entries for scene ID {scene_id!r} last seen row {last_row}',
+                         row.num, uuid=scene_id)
             else:
                 last_seen[scene_id] = row.num
 
             if algorithm in ('phash', 'oshash', 'md5'):
                 pass  # Pylance acting up when using `not in`
             else:
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid algorithm')
+                self.log('warning', f'Skipped due to invalid algorithm', row.num)
                 continue
 
             if (
@@ -69,20 +72,20 @@ class SceneFingerprints(BacklogBase):
                 or algorithm in ('phash', 'oshash') and len(fp_hash) != 16 and fp_hash != '0'
                 or algorithm == 'md5' and len(fp_hash) != 32
             ):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid hash')
+                self.log('warning', f'Skipped due to invalid hash', row.num)
                 continue
 
             # invalid scene id
             if not is_uuid(scene_id):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID: {scene_id}')
+                self.log('warning', f'Skipped due to invalid scene ID: {scene_id}', row.num)
                 continue
 
             if self.skip_no_correct_scene and not correct_scene_id:
-                print(f'Row {row.num:<4} | WARNING: Skipped due to missing correct scene ID')
+                self.log('warning', f'Skipped due to missing correct scene ID', row.num, uuid=scene_id)
                 continue
 
             if correct_scene_id and not is_uuid(correct_scene_id):
-                print(f'Row {row.num:<4} | WARNING: Ignored invalid correct scene ID: {correct_scene_id}')
+                self.log('warning', f'Ignored invalid correct scene ID: {correct_scene_id}', row.num, uuid=scene_id)
                 correct_scene_id = None
 
             if not duration or duration == '-':
@@ -90,7 +93,7 @@ class SceneFingerprints(BacklogBase):
             else:
                 duration_s = parse_duration(duration)
                 if duration_s is None:
-                    print(f'Row {row.num:<4} | WARNING: Invalid duration: {duration}')
+                    self.log('warning', f'Invalid duration: {duration}', row.num, uuid=scene_id)
 
             item = SceneFingerprintsItem(
                 algorithm=algorithm,

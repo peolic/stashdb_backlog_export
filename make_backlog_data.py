@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.11
+#!/usr/bin/env python3
 # coding: utf-8
 import json
 import os
@@ -13,7 +13,7 @@ from typing import Any, Dict, Iterable, List, Literal, Union, cast
 
 import yaml
 
-from logger import report_errors
+from github_logger import report_errors
 
 TAnyDict = Dict[str, Any]
 TCacheData = Dict[str, TAnyDict]
@@ -35,19 +35,20 @@ def get_data(ci: bool = False):
 
     api = BacklogExtractor(api_key=get_google_api_key())
 
-    with report_errors(ci, 'Scene-Performers'):
+    with report_errors(ci) as mgr:
+        mgr.set_header('Scene-Performers')
         scene_performers = api.scene_performers(skip_no_id=False)
-    with report_errors(ci, 'Scene Fixes'):
+        mgr.set_header('Scene Fixes')
         scene_fixes = api.scene_fixes()
-    with report_errors(ci, 'Scene Fingerprints'):
+        mgr.set_header('Scene Fingerprints')
         scene_fingerprints = api.scene_fingerprints(skip_no_correct_scene=False)
-    with report_errors(ci, 'Duplicate Scenes'):
+        mgr.set_header('Duplicate Scenes')
         duplicate_scenes = api.duplicate_scenes()
-    with report_errors(ci, 'Performers To Split Up'):
+        mgr.set_header('Performers To Split Up')
         performers_to_split_up = api.performers_to_split_up()
-    with report_errors(ci, 'Duplicate Performers'):
+        mgr.set_header('Duplicate Performers')
         duplicate_performers = api.duplicate_performers()
-    with report_errors(ci, 'Performer URLs'):
+        mgr.set_header('Performer URLs')
         performer_urls = api.performer_urls()
 
     print('processing information...')
@@ -134,7 +135,7 @@ def get_data(ci: bool = False):
         performer = performers.setdefault(p_id, {})
         if 'split' in performer:
             with report_errors(ci):
-                print(f'WARNING: Duplicate Performers-To-Split-Up entry found: {p_id}')
+                performers_to_split_up.log('warning', f'Duplicate Performers-To-Split-Up entry found: {p_id}', uuid=p_id)
             continue
         item.pop('user', None)
         for fragment in item['fragments']:
@@ -153,7 +154,7 @@ def get_data(ci: bool = False):
         performer = performers.setdefault(main_id, {})
         if 'duplicates' in performer:
             with report_errors(ci):
-                print(f'WARNING: Duplicate "Duplicate Performers" entry found: {main_id}')
+                duplicate_performers.log('warning', f'Duplicate "Duplicate Performers" entry found: {main_id}', uuid=main_id)
             continue
         duplicates = performer['duplicates'] = {}
         duplicates['name'] = p['name']
@@ -170,7 +171,7 @@ def get_data(ci: bool = False):
         performer = performers.setdefault(p_id, {})
         if 'urls' in performer:
             with report_errors(ci):
-                print(f'WARNING: Duplicate Performer URLs entry found: {p_id}')
+                performer_urls.log('warning', f'Duplicate Performer URLs entry found: {p_id}', uuid=p_id)
             continue
         performer['name'] = next((u['name'] for u in url_items))
         performer['urls'] = [u['url'] for u in url_items]

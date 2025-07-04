@@ -4,12 +4,14 @@ from typing import Dict, List, NamedTuple, Optional
 
 from ..base import BacklogBase
 from ..classes import Sheet, SheetRow
+from ..logger import LoggerMixin
 from ..models import SceneChangeFieldType, SceneChangeItem, SceneFixesDict
 from ..utils import is_uuid, parse_duration
 
 
-class SceneFixes(BacklogBase):
+class SceneFixes(BacklogBase, LoggerMixin):
     def __init__(self, sheet: Sheet, skip_done: bool):
+        LoggerMixin.__init__(self, __name__, 'scene')
         self.skip_done = skip_done
 
         self.column_scene_id   = sheet.get_column_index(re.compile('Scene ID'))
@@ -33,7 +35,8 @@ class SceneFixes(BacklogBase):
 
             last_row = last_seen.get(row.scene_id, None)
             if last_row and row.num > (last_row + 1):
-                print(f'Row {row.num:<4} | WARNING: Ungrouped entries for scene ID {row.scene_id!r} last seen row {last_row}')
+                self.log('warning', f'Ungrouped entries for scene ID {row.scene_id!r} last seen row {last_row}',
+                         row.num, uuid=row.scene_id)
             else:
                 last_seen[row.scene_id] = row.num
 
@@ -43,7 +46,7 @@ class SceneFixes(BacklogBase):
 
             # invalid scene id
             if not is_uuid(row.scene_id):
-                print(f'Row {row.num:<4} | WARNING: Skipped due to invalid scene ID: {row.scene_id}')
+                self.log('warning', f'Skipped due to invalid scene ID: {row.scene_id}', row.num)
                 continue
 
             data.setdefault(row.scene_id, []).append(row.change)
@@ -65,7 +68,7 @@ class SceneFixes(BacklogBase):
             try:
                 done = row.is_done()
             except row.CheckboxNotFound as error:
-                print(error)
+                self.log('error', str(error), error.row_num)
                 done = False
 
         scene_id: str = row.cells[self.column_scene_id].value.strip()
@@ -82,27 +85,27 @@ class SceneFixes(BacklogBase):
             return self.RowResult(row.num, done, scene_id, None)
 
         if not field:
-            print(f'Row {row.num:<4} | ERROR: Field is empty.')
+            self.log('error', f'Field is empty.', row.num, uuid=scene_id)
             return self.RowResult(row.num, done, scene_id, None)
 
         if field in ('Overall',):
-            print(f'Row {row.num:<4} | Skipping non-applicable field {field!r}.')
+            self.log('', f'Skipping non-applicable field {field!r}.', row.num)
             return self.RowResult(row.num, done, scene_id, None)
 
         try:
             normalized_field = self._normalize_field(field)
         except ValueError:
-            print(f'Row {row.num:<4} | ERROR: Field {field!r} is invalid.')
+            self.log('error', f'Field {field!r} is invalid.', row.num, uuid=scene_id)
             return self.RowResult(row.num, done, scene_id, None)
 
         try:
             processed_new_data = self._transform_new_data(normalized_field, new_data)
         except SceneFixes.ValueWarning:
             processed_new_data = None
-            print(f'Row {row.num:<4} | WARNING: '
-                  f'Value {new_data!r} for field {field!r} replaced with: {processed_new_data!r}.')
+            self.log('warning', f'Value {new_data!r} for field {field!r} replaced with: {processed_new_data!r}.',
+                     row.num, uuid=scene_id)
         except ValueError:
-            print(f'Row {row.num:<4} | ERROR: Value {new_data!r} for field {field!r} is invalid.')
+            self.log('error', f'Value {new_data!r} for field {field!r} is invalid.', row.num, uuid=scene_id)
             return self.RowResult(row.num, done, scene_id, None)
 
         change = SceneChangeItem(
