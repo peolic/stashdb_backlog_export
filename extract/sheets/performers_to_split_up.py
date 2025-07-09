@@ -170,6 +170,9 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
             note = self.ST_LINK_PATTERN.sub('', note)
             if not note.strip():
                 continue
+            # a symbol to stop processing the notes
+            if note == '### ARCHIVE ###':
+                break
 
             if url_match := URL_PATTERN.match(note):
                 note_links.append(url_match.group(1))
