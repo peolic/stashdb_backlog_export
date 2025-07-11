@@ -6,3 +6,7 @@ __pycache__/
 /backlog_data/
 /cache/
 /*.json
+
+/tests/*
+!/tests/fragment_parser.py
+!/tests/scene_performers_entry.py
