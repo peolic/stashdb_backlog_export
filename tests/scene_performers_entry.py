@@ -59,7 +59,7 @@ def run_parser_test(examples: Examples):
     parser = SheetExtractor()
     for i, example in enumerate(examples, 1):
         raw = example.text
-        fragment_cell = SheetCell(example.text, example.links, example.note, False)
+        fragment_cell = SheetCell(i, example.text, example.links, [], example.note, False)
 
         result, result_raw = parser._get_change_entry(fragment_cell, i, 'scene-uuid')
         if not result:

@@ -36,10 +36,10 @@ def run_parser_test(examples: Examples):
     for i, example in enumerate(examples, 1):
         if isinstance(example, Example):
             raw = example.text
-            fragment_cell = SheetCell(example.text, [], example.note, False)
+            fragment_cell = SheetCell(i, example.text, [], [], example.note, False)
         else:
             raw = example
-            fragment_cell = SheetCell(example, [], '', False)
+            fragment_cell = SheetCell(i, example, [], [], '', False)
 
         result = parser._parse_fragment_cell(fragment_cell, '')
         if not result:

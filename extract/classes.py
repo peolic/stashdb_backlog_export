@@ -3,7 +3,7 @@ import re
 import string
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 strikethrough_pattern = re.compile(r'(~+)([^~]+)\1')
@@ -11,34 +11,37 @@ strikethrough_pattern = re.compile(r'(~+)([^~]+)\1')
 
 @dataclass
 class SheetCell:
+    num: int
     value: str
-    links: List[str]
+    links: list[str]
+    st_links: list[str]
     note: str
     done: bool
 
     @classmethod
-    def parse(cls, cell: dict):
+    def parse(cls, cell: dict, num: int):
         value: str = cell.get('formattedValue', '')
         note: str = cell.get('note', '')
         done: bool = cell.get('effectiveFormat', {}).get('textFormat', {}).get('strikethrough', False)
 
-        format_runs: List[Dict[str, Any]] = cell.get('textFormatRuns', [])
+        format_runs: list[dict[str, Any]] = cell.get('textFormatRuns', [])
 
-        links: List[str] = []
+        links = list[str]()
+        st_links = list[str]()
         for fr in format_runs:
             if link := fr['format'].get('link', {}).get('uri'):
-                if urlparse(link).netloc and link not in links:
-                    links.append(link)
+                target_list = st_links if fr['format'].get('strikethrough', False) else links
+                if urlparse(link).netloc and link not in target_list:
+                    target_list.append(link)
 
         # Text can appear strike-through but effective format says not due to line breaks
         if not done and format_runs:
-            # FIXME: second condition broken
-            # done = all((
-            #     (fr['format'].get('strikethrough', False)
-            #      or value[fr.get('startIndex', 0)] in string.whitespace)
-            #     for fr in format_runs
-            # ))
-            done = all((fr['format'].get('strikethrough', False) for fr in format_runs))
+            done = all((
+                fr['format'].get('strikethrough', False) \
+                # FIXME: the condition on the next line is broken
+                #  or value[fr.get('startIndex', 0)] in string.whitespace
+                for fr in format_runs
+            ))
 
         # Mark strike-through text
         if not done:
@@ -76,7 +79,7 @@ class SheetCell:
         if link and urlparse(link).netloc and link not in links:
             links.append(link)
 
-        return cls(value=value, links=links, note=note, done=done)
+        return cls(num=num, value=value, links=links, st_links=st_links, note=note, done=done)
 
     @property
     def first_link(self) -> Optional[str]:
@@ -86,15 +89,15 @@ class SheetCell:
 @dataclass
 class SheetRow:
     num: int
-    cells: List[SheetCell]
+    cells: list[SheetCell]
 
     @classmethod
-    def parse(cls, row: List[dict], num: int, fill: int):
-        cells = [SheetCell.parse(cell) for cell in row]
+    def parse(cls, row: list[dict], num: int, fill: int):
+        cells = [SheetCell.parse(cell, num=cell_num) for cell_num, cell in enumerate(row, 1)]
         if fill > (count := len(cells)):
             cells.extend(
-                SheetCell(value='', links=[], note='', done=False)
-                for _ in range(fill - count)
+                SheetCell(num=cell_num, value='', links=[], st_links=[], note='', done=False)
+                for cell_num in range(count + 1, fill + 1)
             )
         return cls(num=num, cells=cells)
 
@@ -124,8 +127,8 @@ class Sheet:
     column_count: int
     frozen_row_count: int
     frozen_column_count: int
-    columns: List[str] = field(default_factory=list, repr=False)
-    rows: List[SheetRow] = field(default_factory=list, repr=False)
+    columns: list[str] = field(default_factory=list, repr=False)
+    rows: list[SheetRow] = field(default_factory=list, repr=False)
 
     @classmethod
     def parse(cls, sheet: dict):
@@ -165,7 +168,7 @@ class Sheet:
         # noop
         setattr(self, 'parse_data', lambda: None)
 
-    def get_column_index(self, text: Union[str, re.Pattern]) -> int:
+    def get_column_index(self, text: str | re.Pattern) -> int:
         for idx, col in enumerate(self.columns):
             if isinstance(text, re.Pattern) and text.search(col):
                 return idx
@@ -174,7 +177,7 @@ class Sheet:
 
         return -1
 
-    def get_all_column_indices(self, text: Union[str, re.Pattern]) -> List[int]:
+    def get_all_column_indices(self, text: str | re.Pattern) -> list[int]:
         return [
             idx for idx, col in enumerate(self.columns)
             if isinstance(text, re.Pattern) and text.search(col)
