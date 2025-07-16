@@ -43,11 +43,9 @@ def main():
 
     class Arguments(argparse.Namespace):
         main_method: Callable[[], None]
-        legacy: bool
 
     parser = argparse.ArgumentParser('Extract Sheet Data')
     parser.set_defaults(main_method=main_scene_performers)
-    parser.add_argument('-l', '--legacy', action='store_true', help='Force legacy extractor.')
 
     subparsers = parser.add_subparsers(help='What')
 
@@ -91,11 +89,9 @@ def main():
         if k not in Arguments.__annotations__
     }
 
-    api_key = None if args.legacy else get_google_api_key()
-
     if proxy := get_proxy():
         os.environ['ALL_PROXY'] = proxy
 
-    api = BacklogExtractor(api_key=api_key)
+    api = BacklogExtractor(api_key=get_google_api_key())
 
     args.main_method(**kwargs)

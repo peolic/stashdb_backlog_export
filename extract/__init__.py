@@ -1,6 +1,4 @@
 # coding: utf-8
-from typing import Optional
-
 from .logger import setup_logging
 
 setup_logging()
@@ -18,21 +16,16 @@ class BacklogExtractor:
         'performer_urls': 1209918135,
     }
 
-    def __init__(self, api_key: Optional[str]):
+    def __init__(self, api_key: str | None):
         args = {
             'spreadsheet_id': self.SPREADSHEET_ID,
             'sheet_ids': list(self.SHEET_WHITELIST.values()),
         }
 
-        if api_key:
-            from .interfaces.api import DataInterface
-            self.interface = DataInterface(api_key=api_key, **args)
-            self.type = 'API'
-            return
-
-        from .interfaces.html import HTMLInterface
-        self.interface = HTMLInterface(**args)
-        self.type = 'HTML'
+        from .interfaces.api import DataInterface
+        self.interface = DataInterface(api_key=api_key, **args)
+        self.type = 'API'
+        return
 
     def scene_performers(self, skip_done: bool = True, skip_no_id: bool = True):
         """

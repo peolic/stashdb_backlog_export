@@ -16,7 +16,7 @@ class DataInterface(InterfaceBase[Sheet]):
         'sheets.data.rowData.values.textFormatRuns(startIndex,format(link,strikethrough))',
     ]
 
-    def __init__(self, api_key: str, spreadsheet_id: str, sheet_ids: list[int]):
+    def __init__(self, api_key: str | None, spreadsheet_id: str, sheet_ids: list[int]):
         super(DataInterface, self).__init__()
 
         if not api_key:
