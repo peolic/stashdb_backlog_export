@@ -11,13 +11,13 @@ from ..models import PerformersToSplitUpItem, SplitFragment
 from ..utils import URL_PATTERN, is_uuid, parse_stashdb_url
 
 
-def column_letter(cell_num: int) -> str:
+def cell_addr(cell_num: int, row_num: int | None = None) -> str:
     """Converts a number to letter column as used in Sheets/Excel."""
     cell_col = ''
     while cell_num > 0:
         cell_num, rem = divmod(cell_num - 1, 26)
         cell_col = string.ascii_uppercase[rem] + cell_col
-    return cell_col
+    return cell_col + (str(row_num) if row_num is not None else '')
 
 def compile_labels_pattern():
     labels = '|'.join([
@@ -33,6 +33,9 @@ def compile_labels_pattern():
         r'scene',
     ])
     return re.compile(rf'(- )? *\[({labels})( ?\d)?\]', re.I)
+
+
+ARCHIVE_SYMBOL = '### ARCHIVE ###'
 
 
 class PerformersToSplitUp(BacklogBase, LoggerMixin):
@@ -122,21 +125,17 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
     def _get_fragments(self, cells: List[SheetCell], row_num: int) -> List[SplitFragment]:
         results: List[SplitFragment] = []
 
-        column_1 = self.columns_fragments[0]
-
         for cell_num, cell in enumerate(cells, 1):
             # skip empty
             if not cell.value.strip():
                 continue
 
-            cell_col = column_letter(cell_num + column_1)
-
             # skip completed
             if cell.done and self.skip_done_fragments:
                 continue
-                self.log('', f'skipped completed fragment {cell_col} ({cell_num}): {cell.value}', row_num)
+                self.log('', f'skipped completed fragment {cell_addr(cell.num, row_num)} ({cell_num}): {cell.value}', row_num)
 
-            if fragment := self._parse_fragment_cell(cell, cell_col):
+            if fragment := self._parse_fragment_cell(cell):
                 results.append(fragment)
 
         return results
@@ -145,8 +144,9 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
     LABELS_PATTERN = compile_labels_pattern()
     ST_LINK_PATTERN = re.compile(r'\u0002' + URL_PATTERN.pattern + r'\u0003')
 
-    def _parse_fragment_cell(self, cell: SheetCell, cell_col: str) -> Optional[SplitFragment]:
+    def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
         value = cell.value.strip()
+        cell_col = cell_addr(cell.num)
         lines = value.splitlines()
 
         first_line = lines.pop(0)
@@ -163,21 +163,7 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
                 cleaned.append(line)
 
         text: str = ''
-        notes: List[str] = []
-        note_links: List[str] = []
-
-        for note in filter(str.strip, cell.note.splitlines()):
-            note = self.ST_LINK_PATTERN.sub('', note)
-            if not note.strip():
-                continue
-            # a symbol to stop processing the notes
-            if note == '### ARCHIVE ###':
-                break
-
-            if url_match := URL_PATTERN.match(note):
-                note_links.append(url_match.group(1))
-            else:
-                notes.append(note)
+        notes, note_links = self._process_fragment_note(cell)
 
         if cleaned:
             text = cleaned[0]
@@ -229,6 +215,25 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
             fragment['done'] = cell.done
 
         return fragment
+
+    def _process_fragment_note(self, cell: SheetCell) -> tuple[List[str], List[str]]:
+        notes: List[str] = []
+        note_links: List[str] = []
+
+        for note in filter(str.strip, cell.note.splitlines()):
+            note = self.ST_LINK_PATTERN.sub('', note)
+            if not note.strip():
+                continue
+            # a symbol to stop processing the notes
+            if note == ARCHIVE_SYMBOL:
+                break
+
+            if url_match := URL_PATTERN.match(note):
+                note_links.append(url_match.group(1))
+            else:
+                notes.append(note)
+
+        return notes, note_links
 
     def sort_key(self, item: PerformersToSplitUpItem):
         # Performer name, ASC

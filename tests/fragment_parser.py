@@ -41,7 +41,7 @@ def run_parser_test(examples: Examples):
             raw = example
             fragment_cell = SheetCell(i, example, [], [], '', False)
 
-        result = parser._parse_fragment_cell(fragment_cell, '')
+        result = parser._parse_fragment_cell(fragment_cell)
         if not result:
             print('no result for:', raw)
             break
