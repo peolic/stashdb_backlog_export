@@ -271,6 +271,11 @@ class ScenePerformers(BacklogBase, LoggerMixin):
             entry['status_url'] = url
         if cell.note:
             entry['notes'] = [n for n in cell.note.splitlines() if n.strip()]
+            try:
+                if url:
+                    entry['notes'].remove(url)
+            except ValueError:
+                pass
         return entry, raw_name
 
     def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int, scene_id: str):
