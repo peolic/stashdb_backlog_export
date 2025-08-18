@@ -270,12 +270,10 @@ class ScenePerformers(BacklogBase, LoggerMixin):
         if status in ('new', 'c') and url:
             entry['status_url'] = url
         if cell.note:
-            entry['notes'] = [n for n in cell.note.splitlines() if n.strip()]
-            try:
-                if url:
-                    entry['notes'].remove(url)
-            except ValueError:
-                pass
+            notes = [n for n in cell.note.splitlines()
+                     if (ns := n.strip()) and (not url or ns != url)]
+            if notes:
+                entry['notes'] = notes
         return entry, raw_name
 
     def _find_updates(self, remove: List[PerformerEntry], append: List[PerformerEntry], row_num: int, scene_id: str):
