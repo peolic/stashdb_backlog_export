@@ -28,6 +28,7 @@ def compile_labels_pattern():
         r'[be]gafd',
         r'd(ata)?18',
         r'gevi',
+        r'imdb',
         r'adt',
         r'studio',
         r'scene',
