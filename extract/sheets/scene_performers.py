@@ -224,9 +224,8 @@ class ScenePerformers(BacklogBase, LoggerMixin):
             appearance = match.group('as')
             dsmbg = match.group('dsmbg')
 
-            if not dsmbg and (dsmbg_start := name.find(' (')) > 0 and name.endswith(')'):
-                dsmbg = name[dsmbg_start+2 : -1]
-                name = name[:dsmbg_start]
+            if not dsmbg and (modified := handle_incorrect_disambiguation(name)):
+                name, dsmbg = modified
                 self.log('warning', f'Incorrect disambiguation syntax: {raw_name}', row_num, uuid=scene_id)
         else:
             self.log('warning', f'Failed to parse name {raw_name}', row_num, uuid=scene_id)
@@ -341,3 +340,16 @@ class ScenePerformers(BacklogBase, LoggerMixin):
 
     def __iter__(self):
         return iter(self.data)
+
+
+def handle_incorrect_disambiguation(name: str) -> tuple[str, str] | None:
+    for s in (' (', ' ['):
+        if (dsmbg_start := name.find(s)) > 0:
+            break
+
+    if dsmbg_start and name.endswith((')', ']')):
+        name_new = name[:dsmbg_start]
+        dsmbg = name[dsmbg_start+2 : -1]
+        return name_new, dsmbg
+
+    return None
