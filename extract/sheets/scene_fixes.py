@@ -46,6 +46,8 @@ class SceneFixes(BacklogBase, LoggerMixin):
 
             # invalid scene id
             if not is_uuid(row.scene_id):
+                if row.scene_id.casefold().startswith('multiple'):
+                    continue
                 self.log('warning', f'Skipped due to invalid scene ID: {row.scene_id}', row.num)
                 continue
 
@@ -102,7 +104,7 @@ class SceneFixes(BacklogBase, LoggerMixin):
             processed_new_data = self._transform_new_data(normalized_field, new_data)
         except SceneFixes.ValueWarning:
             processed_new_data = None
-            self.log('warning', f'Value {new_data!r} for field {field!r} replaced with: {processed_new_data!r}.',
+            self.log('', f'Value {new_data!r} for field {field!r} replaced with: {processed_new_data!r}.',
                      row.num, uuid=scene_id)
         except ValueError:
             self.log('error', f'Value {new_data!r} for field {field!r} is invalid.', row.num, uuid=scene_id)
