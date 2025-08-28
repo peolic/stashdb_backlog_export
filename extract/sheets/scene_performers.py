@@ -347,7 +347,7 @@ def handle_incorrect_disambiguation(name: str) -> tuple[str, str] | None:
         if (dsmbg_start := name.find(s)) > 0:
             break
 
-    if dsmbg_start and name.endswith((')', ']')):
+    if dsmbg_start > 0 and name.endswith((')', ']')):
         name_new = name[:dsmbg_start]
         dsmbg = name[dsmbg_start+2 : -1]
         return name_new, dsmbg
