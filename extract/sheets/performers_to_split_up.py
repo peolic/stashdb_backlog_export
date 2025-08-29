@@ -8,7 +8,7 @@ from ..base import BacklogBase
 from ..classes import Sheet, SheetCell, SheetRow
 from ..logger import LoggerMixin
 from ..models import PerformersToSplitUpItem, SplitFragment
-from ..utils import URL_PATTERN, is_uuid, parse_stashdb_url
+from ..utils import URL_PATTERN, UUID_PATTERN, is_uuid, parse_stashdb_url
 
 
 def cell_addr(cell_num: int, row_num: int | None = None) -> str:
@@ -136,7 +136,7 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
                 continue
                 self.log('', f'skipped completed fragment {cell_addr(cell.num, row_num)} ({cell_num}): {cell.value}', row_num)
 
-            if fragment := self._parse_fragment_cell(cell):
+            if fragment := self._parse_fragment_cell(cell, row_num):
                 results.append(fragment)
 
         return results
@@ -145,7 +145,7 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
     LABELS_PATTERN = compile_labels_pattern()
     ST_LINK_PATTERN = re.compile(r'\u0002' + URL_PATTERN.pattern + r'\u0003')
 
-    def _parse_fragment_cell(self, cell: SheetCell) -> Optional[SplitFragment]:
+    def _parse_fragment_cell(self, cell: SheetCell, row_num: int) -> Optional[SplitFragment]:
         value = cell.value.strip()
         cell_col = cell_addr(cell.num)
         lines = value.splitlines()
@@ -193,6 +193,8 @@ class PerformersToSplitUp(BacklogBase, LoggerMixin):
             if url in cell.links:
                 # Remove unuseful automated links
                 if url_parts.scheme == 'http' and url_parts.path == '/':
+                    if url_parts.hostname and UUID_PATTERN.fullmatch(url_parts.hostname):
+                        self.log('warning', f'bad link in fragment {cell_addr(cell.num, row_num)}: {cell.value}', row_num)
                     continue
 
             links.append(url)
