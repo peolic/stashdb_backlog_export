@@ -301,8 +301,8 @@ class ScenePerformers(BacklogBase, LoggerMixin):
                     continue
 
                 comparison = (f"Unexpected name/ID:"
-                              f"\n  [{r_item['id']}] - {performer_name(r_item)}"
-                              f"\n  [{a_item['id']}] - {performer_name(a_item)}")
+                              f"\n  -- [{r_item['id']}] - {performer_name(r_item)}"
+                              f"\n  ++ [{a_item['id']}] - {performer_name(a_item)}")
                 self.log('warning', comparison, row_num, uuid=scene_id)
                 continue
 

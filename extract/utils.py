@@ -53,16 +53,12 @@ def performer_name(p: AnyPerformerEntry) -> str:
     p_dsmbg = p.get('disambiguation')
     p_as = p['appearance']
 
-    parts = []
+    output = p_name + (f' [{p_dsmbg}]' if p_dsmbg else '')
 
     if p_as:
-        parts.extend((p_as, f'({p_name})'))
-    elif p_dsmbg:
-        parts.extend((p_name, f'[{p_dsmbg}]'))
-    else:
-        parts.append(p_name)
+        output += f' (as {p_as})'
 
-    return ' '.join(parts)
+    return output
 
 
 def format_studio(item: ScenePerformersItem) -> Optional[str]:
