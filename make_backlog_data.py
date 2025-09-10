@@ -142,9 +142,8 @@ def get_data(ci: bool = False):
             fragment.pop('raw', None)
         if item.pop('submitted', False):
             item['status'] = '[queued to be marked as done]'
+            submitted['performers'][p_id] = True
         if status := item.get('status'):
-            if item.pop('submitted', False):
-                submitted['performers'][p_id] = True
             if (status[0], status[-1]) == ('[', ']'):
                 item['status'] = status[1:-1]
             else:
