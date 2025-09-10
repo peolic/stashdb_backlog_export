@@ -140,6 +140,8 @@ def get_data(ci: bool = False):
         item.pop('user', None)
         for fragment in item['fragments']:
             fragment.pop('raw', None)
+        if item.pop('submitted', False):
+            item['status'] = '[queued to be marked as done]'
         if status := item.get('status'):
             if item.pop('submitted', False):
                 submitted['performers'][p_id] = True
